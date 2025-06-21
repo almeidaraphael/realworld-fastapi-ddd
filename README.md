@@ -15,5 +15,9 @@ app/
   main.py         # FastAPI app entrypoint
 pyproject.toml    # Poetry dependency management
 Dockerfile        # Docker build for app
+docker-compose.yml # Docker Compose for database
 tests/            # Unit, integration, and end-to-end tests
+  unit/          # Unit tests
+  integration/   # Integration tests
+  e2e/           # End-to-end tests
 ```
