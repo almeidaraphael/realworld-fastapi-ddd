@@ -1,6 +1,6 @@
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from app.domain.users.models import User
+from app.domain.users.models import User, UserRead
 from tests.factory_base import fake
 
 
@@ -10,5 +10,14 @@ class UserFactory(ModelFactory[User]):
     username = fake.unique.user_name()
     email = fake.unique.email()
     hashed_password = fake.password()
+    bio: str = ""
+    image: str = ""
+
+
+class UserReadFactory(ModelFactory[UserRead]):
+    __model__ = UserRead
+
+    username = fake.unique.user_name()
+    email = fake.unique.email()
     bio: str = ""
     image: str = ""

@@ -5,7 +5,9 @@ import logging
 from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 from app.adapters.repository.users import UserRepository
 from app.domain.profiles.exceptions import (
+    CannotFollowYourselfError,
     ProfileNotFoundError,
+    UserOrFollowerIdMissingError,
 )
 from app.domain.profiles.models import Profile
 from app.shared import USER_DEFAULT_BIO, USER_DEFAULT_IMAGE
@@ -20,10 +22,35 @@ async def get_profile_by_username(username: str, current_user: str | None = None
         user = await repo.get_by_username_or_email(username, "")
         if not user:
             raise ProfileNotFoundError("Profile not found")
-        following = False  # TODO: implement following logic
+        following = False
+        if current_user and current_user != username:
+            follower = await repo.get_by_username_or_email(current_user, "")
+            if follower and follower.id is not None and user.id is not None:
+                following = await repo.is_following(follower_id=follower.id, followee_id=user.id)
         return Profile(
             username=user.username,
             bio=user.bio or USER_DEFAULT_BIO,
             image=user.image or USER_DEFAULT_IMAGE,
             following=following,
+        )
+
+
+async def follow_user(username: str, follower_username: str) -> Profile:
+    async with AsyncUnitOfWork() as uow:
+        logger.info(f"[DEBUG] follow_user: Using session {uow.session}")
+        repo = UserRepository(uow.session)
+        user = await repo.get_by_username_or_email(username, "")
+        follower = await repo.get_by_username_or_email(follower_username, "")
+        if not user or not follower:
+            raise ProfileNotFoundError("Profile or follower not found")
+        if user.username == follower.username:
+            raise CannotFollowYourselfError("Cannot follow yourself")
+        if follower.id is None or user.id is None:
+            raise UserOrFollowerIdMissingError("User or follower has no id")
+        await repo.follow_user(follower_id=follower.id, followee_id=user.id)
+        return Profile(
+            username=user.username,
+            bio=user.bio or USER_DEFAULT_BIO,
+            image=user.image or USER_DEFAULT_IMAGE,
+            following=True,
         )

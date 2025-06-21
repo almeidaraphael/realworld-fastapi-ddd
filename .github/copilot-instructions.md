@@ -1,18 +1,23 @@
 # Copilot Instructions for fastapi-realworld-demo
 
+## Agent Behavior
+- Always act as an autonomous agent: when a user requests an action, immediately perform it using the terminal or code tools whenever possible.
+- Do not output instructions or suggestions to the user—just take the required actions and report results.
+- Prefer direct action (e.g., running commands, editing files, running tests) over explanations or manual guidance.
+- Only ask for clarification if absolutely necessary to proceed.
+
 ## Project Overview
 - FastAPI project following Domain-Driven Design (DDD)
 - Implements RealWorld API spec
-- Uses SQLModel (ORM + API schemas), PostgreSQL, Alembic, asyncpg, Docker, and Poetry
+- Uses SQLModel (ORM + API schemas), PostgreSQL, Alembic, asyncpg, and Poetry
+- Docker is used only for database instances. The application runs with uvicorn and poetry directly.
 
 ## Key Practices
 - Use SQLModel for both ORM and API schemas. Always convert ORM objects to schemas with `model_validate(obj)` before returning/serializing (never use deprecated `from_orm`).
-- Use Pydantic Settings for all configuration. **Never use `os.environ.get` or direct environment variable access in application code.** Always rely on Pydantic Settings for environment/config management.
-- All config is loaded from `.env` (default/Docker) and/or `TEST_`-prefixed variables for test environments. `POSTGRES_HOST` is `db` in Docker, `localhost` locally.
-- All code and tests must work both in Docker and locally, relying on Pydantic for env management.
-- Set default values for optional fields (e.g., `bio`, `image`) in models/shared constants to ensure consistent API responses.
-- **Only the API layer (e.g., `app/api/`) should raise or handle `HTTPException`. All other layers (service, domain, repository, etc.) must raise custom or built-in exceptions. The API layer is responsible for translating these exceptions into HTTP responses.**
-- **When making code changes, focus on code logic and type correctness. Leave import sorting, formatting, and linting to ruff or the project's configured tools. Do not manually reformat imports or code style unless it affects logic or type correctness.**
+- Use Pydantic Settings for all configuration. Never use direct environment variable access in application code. Always rely on Pydantic Settings for environment/config management.
+- Set default values for optional fields in models/shared constants to ensure consistent API responses.
+- Only the API layer (e.g., `app/api/`) should raise or handle `HTTPException`. All other layers (service, domain, repository, etc.) must raise custom or built-in exceptions. The API layer is responsible for translating these exceptions into HTTP responses.
+- When making code changes, focus on code logic and type correctness. Leave import sorting, formatting, and linting to ruff or the project's configured tools. Do not manually reformat imports or code style unless it affects logic or type correctness.
 
 ## Functionality
 - JWT authentication (login/signup/logout)
@@ -23,19 +28,25 @@
 - Favorite articles
 - Follow/unfollow users
 
-## Testing
-- Use pytest, pytest-asyncio, httpx
-- Use pytest-mock's `mocker` fixture and `unittest.mock.AsyncMock` for mocking async dependencies in unit tests. Avoid hand-rolled dummy classes for mocks; prefer patching dependencies directly with `mocker` and `AsyncMock` for clarity and maintainability.
-- Tests must run in both Docker (`POSTGRES_HOST=db`) and locally (`POSTGRES_HOST=localhost`)
-- Document and maintain this workflow in README and codebase
+## Testing Best Practices
+- Use pytest, pytest-asyncio, httpx, and pytest-mock for all tests.
+- Use pydantic-factories (or ModelFactory) to generate valid and realistic test data for Pydantic/SQLModel models. Avoid using MagicMock for domain/data models.
+- Use factories for all domain model test data. Override only the fields needed for each test case.
+- Use mocks for infrastructure dependencies (e.g., repositories, UoW), not for domain/data models.
+- All tests should run against a dedicated test database instance.
+- Document and maintain the test workflow in README and codebase.
+- All test fixtures must be defined in `tests/conftest.py`.
+Do not define fixtures in individual test modules. This ensures DRY, reusable, and discoverable test setup across the codebase.
+Example: Place all patch_uow, patch_repo, user_factory, and other shared fixtures in conftest.py and import them in your tests.
+- When using httpx.AsyncClient in tests, do not use the deprecated `app=app` shortcut. Instead, use the `async_client` fixture (which uses `ASGITransport(app=...)` under the hood) for all FastAPI integration tests. This avoids deprecation warnings and follows best practices for httpx and FastAPI.
 
 ## Type Checking
 - Use mypy with strict settings (see `mypy.ini`). Type-annotate all new code. Ignore `alembic/` and `tests/`.
 - Use built-in collection types (PEP 585). Remove unused `type: ignore` comments.
 
 ## Maintenance
-- **Whenever significant changes are made to the codebase, always update this file and the README to reflect new requirements, features, dependencies, or project structure.**
-- **If you add or change exception handling, ensure that only the API layer raises or handles `HTTPException`. All other layers must use custom or built-in exceptions, and the API layer must translate them to HTTP responses.**
+- Whenever significant changes are made to the codebase, always update this file and the README to reflect new requirements, features, dependencies, or project structure.
+- If you add or change exception handling, ensure that only the API layer raises or handles `HTTPException`. All other layers must use custom or built-in exceptions, and the API layer must translate them to HTTP responses.
 
 ## Reference
 - All endpoints, models, and validation must match the RealWorld OpenAPI spec and use the above tech stack and practices.

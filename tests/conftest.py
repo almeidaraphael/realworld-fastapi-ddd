@@ -1,7 +1,7 @@
 import logging
 from collections.abc import AsyncGenerator
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
@@ -14,7 +14,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.adapters.orm.engine import get_async_engine
 from app.main import app
-from tests.factories import UserFactory
+from tests.factories import UserFactory, UserReadFactory
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,11 @@ def mock_uow(mocker: Any) -> tuple[Any, Any]:
     return uow, mock_session
 
 
+@pytest.fixture
+def user_read_factory() -> ModelFactory:
+    return UserReadFactory()
+
+
 @pytest_asyncio.fixture
 async def async_session() -> AsyncGenerator[AsyncSession, None]:
     engine = get_async_engine()
@@ -64,3 +69,38 @@ async def async_session() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSession(engine) as session:
         logger.info(f"[DEBUG] async_session: Yielding session {session}")
         yield session
+
+
+# PATCH_UOW for profiles service
+@pytest.fixture
+def patch_uow_profiles(mocker: Any) -> Any:
+    patcher = mocker.patch("app.service_layer.profiles.services.AsyncUnitOfWork")
+    mock_ctx = patcher.return_value.__aenter__.return_value
+    return patcher, mock_ctx
+
+
+# PATCH_REPO for profiles service
+@pytest.fixture
+def patch_repo_profiles(mocker: Any) -> Any:
+    repo = MagicMock()
+    repo.get_by_username_or_email = AsyncMock(return_value=None)
+    repo.is_following = AsyncMock(return_value=False)
+    patcher = mocker.patch("app.service_layer.profiles.services.UserRepository", return_value=repo)
+    return patcher, repo
+
+
+# PATCH_UOW for users service (if not already present)
+@pytest.fixture
+def patch_uow_users(mocker: Any) -> Any:
+    patcher = mocker.patch("app.service_layer.users.services.AsyncUnitOfWork")
+    mock_ctx = patcher.return_value.__aenter__.return_value
+    return patcher, mock_ctx
+
+
+# PATCH_REPO for users service (if not already present)
+@pytest.fixture
+def patch_repo_users(mocker: Any, fake_user: MagicMock) -> tuple[Any, Any]:
+    repo = MagicMock()
+    repo.get_by_username_or_email = AsyncMock(return_value=fake_user)
+    patcher = mocker.patch("app.service_layer.users.services.UserRepository", return_value=repo)
+    return patcher, repo

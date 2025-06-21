@@ -1,12 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.users import get_current_user
 from app.domain.profiles.exceptions import (
+    CannotFollowYourselfError,
     ProfileNotFoundError,
+    UserOrFollowerIdMissingError,
 )
 from app.domain.profiles.models import ProfileResponse
 from app.domain.users.models import UserWithToken
-from app.service_layer.profiles.services import get_profile_by_username
+from app.service_layer.profiles.services import follow_user, get_profile_by_username
 
 router = APIRouter(prefix="/profiles", tags=["Profile"])
 
@@ -28,4 +30,26 @@ async def get_profile(
         )
     except ProfileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ProfileResponse(profile=profile)
+
+
+@router.post("/{username}/follow", response_model=ProfileResponse, status_code=status.HTTP_200_OK)
+async def follow_profile(
+    username: str, current_user: UserWithToken = Depends(get_current_user)
+) -> ProfileResponse:
+    """
+    Follow a user by username.
+
+    Authenticated users can follow another user. Returns the updated profile with following status.
+    Returns 400 if attempting to follow yourself, 404 if the profile does not exist, and 500 for
+    internal errors.
+    """
+    try:
+        profile = await follow_user(username, current_user.username)
+    except CannotFollowYourselfError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except ProfileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except UserOrFollowerIdMissingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
     return ProfileResponse(profile=profile)

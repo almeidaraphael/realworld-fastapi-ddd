@@ -29,27 +29,11 @@ def user_update() -> UserUpdateRequest:
     return UserUpdateRequest(user=UserUpdate(bio="bio"))
 
 
-@pytest.fixture
-def patch_uow(mocker: Any) -> Any:
-    patcher = mocker.patch.object(services, "AsyncUnitOfWork")
-    mock_ctx = patcher.return_value.__aenter__.return_value
-    # session is always present and non-optional now
-    return patcher, mock_ctx
-
-
-@pytest.fixture
-def patch_repo(mocker: Any, fake_user: MagicMock) -> tuple[Any, Any]:
-    repo = MagicMock()
-    repo.get_by_username_or_email = AsyncMock(return_value=fake_user)
-    patcher = mocker.patch.object(services, "UserRepository", return_value=repo)
-    return patcher, repo
-
-
 @pytest.mark.asyncio
 async def test_create_user_success(
     mocker: Any,
-    patch_repo: Any,
-    patch_uow: tuple[Any, Any],
+    patch_repo_users: Any,
+    patch_uow_users: tuple[Any, Any],
 ) -> None:
     """
     GIVEN a valid new user registration request to the service layer
@@ -58,26 +42,26 @@ async def test_create_user_success(
     """
     user_data = UserCreate(username="testuser", email="test@example.com", password="p")
     req = NewUserRequest(user=user_data)
-    patch_repo[1].get_by_username_or_email = AsyncMock(return_value=None)
-    patch_repo[1].add = AsyncMock()
+    patch_repo_users[1].get_by_username_or_email = AsyncMock(return_value=None)
+    patch_repo_users[1].add = AsyncMock()
     mocker.patch("app.service_layer.users.services.get_password_hash", return_value="hashed")
-    _, _ = patch_uow
+    _, _ = patch_uow_users
 
     result = await services.create_user(req)
     assert result.username == user_data.username
-    patch_repo[1].add.assert_called()
-    assert patch_repo[1].add.call_args[0][0].hashed_password == "hashed"
+    patch_repo_users[1].add.assert_called()
+    assert patch_repo_users[1].add.call_args[0][0].hashed_password == "hashed"
 
 
 @pytest.mark.asyncio
 async def test_create_user_duplicate(
     mocker: Any,
-    patch_repo: Any,
-    patch_uow: tuple[Any, Any],
+    patch_repo_users: Any,
+    patch_uow_users: tuple[Any, Any],
 ) -> None:
     user_data = UserCreate(username="testuser", email="test@example.com", password="p")
     req = NewUserRequest(user=user_data)
-    patch_repo[1].get_by_username_or_email = AsyncMock(return_value=user_data)
-    _, _ = patch_uow
+    patch_repo_users[1].get_by_username_or_email = AsyncMock(return_value=user_data)
+    _, _ = patch_uow_users
     with pytest.raises(UserAlreadyExistsError):
         await services.create_user(req)
