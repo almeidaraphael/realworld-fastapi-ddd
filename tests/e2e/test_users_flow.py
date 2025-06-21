@@ -65,3 +65,30 @@ async def test_get_current_user_success(async_client: AsyncClient, user_factory)
     me_data = me_resp.json()["user"]
     assert me_data["email"] == email
     assert me_data["username"] == username
+
+
+@pytest.mark.asyncio
+async def test_update_user_success(async_client: AsyncClient, user_factory) -> None:
+    """
+    GIVEN a logged-in user
+    WHEN updating bio and image
+    THEN the API returns 200 and updated user data
+    """
+    user = user_factory.build()
+    user_data = user.model_dump()
+    username = user_data["username"]
+    email = user_data["email"]
+    password = "e2epass"
+    await register_user(async_client, username, email, password)
+    login_resp = await login_user(async_client, email, password)
+    token = login_resp.json()["user"]["token"]
+    update_resp = await async_client.put(
+        "/user",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"user": {"bio": "e2e bio", "image": "http://img.com/e2e.png"}},
+    )
+    assert update_resp.status_code == 200
+    upd_data = update_resp.json()["user"]
+    assert upd_data["bio"] == "e2e bio"
+    assert upd_data["image"] == "http://img.com/e2e.png"
+    assert upd_data["email"] == email

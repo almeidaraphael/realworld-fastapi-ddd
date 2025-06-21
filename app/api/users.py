@@ -6,10 +6,12 @@ from app.domain.users.models import (
     NewUserRequest,
     UserLoginRequest,
     UserResponse,
+    UserUpdateRequest,
     UserWithToken,
 )
 from app.service_layer.users.services import authenticate_user, get_user_by_email
 from app.service_layer.users.services import create_user as create_user_service
+from app.service_layer.users.services import update_user as update_user_service
 from app.shared.jwt import create_access_token, decode_access_token
 
 router = APIRouter()
@@ -129,3 +131,31 @@ async def get_user(current_user: UserWithToken = Depends(get_current_user)) -> U
     Requires a valid JWT token. Returns the user profile with token.
     """
     return UserResponse(user=current_user)
+
+
+@router.put(
+    "/user",
+    response_model=UserResponse,
+    summary="Update current user",
+    tags=["User and Authentication"],
+)
+async def update_user(
+    user_update: UserUpdateRequest,
+    current_user: UserWithToken = Depends(get_current_user),
+) -> UserResponse:
+    """
+    Update the current authenticated user's profile.
+
+    Accepts updated user fields and returns the updated user profile with a new JWT token.
+    Requires authentication.
+    """
+    updated_user = await update_user_service(current_user.email, user_update)
+    token = create_access_token({"sub": updated_user.email})
+    user_with_token = UserWithToken(
+        email=updated_user.email,
+        token=token,
+        username=updated_user.username,
+        bio=updated_user.bio or "",
+        image=updated_user.image or "",
+    )
+    return UserResponse(user=user_with_token)

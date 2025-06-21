@@ -109,6 +109,63 @@ async def test_get_current_user_unauthorized(async_client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_user_success(async_client: AsyncClient) -> None:
+    """
+    GIVEN a logged-in user
+    WHEN updating bio and image
+    THEN the API returns 200 and updated user data
+    """
+    await register_user(async_client, "updateuser", "update@example.com", "updatepass")
+    login_resp = await login_user(async_client, "update@example.com", "updatepass")
+    token = login_resp.json()["user"]["token"]
+    resp = await async_client.put(
+        "/user",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"user": {"bio": "new bio", "image": "http://img.com/new.png"}},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["user"]["bio"] == "new bio"
+    assert data["user"]["image"] == "http://img.com/new.png"
+    assert data["user"]["email"] == "update@example.com"
+
+
+@pytest.mark.asyncio
+async def test_update_user_partial(async_client: AsyncClient) -> None:
+    """
+    GIVEN a logged-in user
+    WHEN updating only the username
+    THEN the API returns 200 and updated username
+    """
+    await register_user(async_client, "partialuser", "partial@example.com", "partialpass")
+    login_resp = await login_user(async_client, "partial@example.com", "partialpass")
+    token = login_resp.json()["user"]["token"]
+    resp = await async_client.put(
+        "/user",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"user": {"username": "partialuser2"}},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["user"]["username"] == "partialuser2"
+    assert data["user"]["email"] == "partial@example.com"
+
+
+@pytest.mark.asyncio
+async def test_update_user_unauthorized(async_client: AsyncClient) -> None:
+    """
+    GIVEN no authentication
+    WHEN updating user
+    THEN the API returns 401
+    """
+    resp = await async_client.put(
+        "/user",
+        json={"user": {"bio": "should fail"}},
+    )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_get_current_user_invalid_token_payload(async_client: AsyncClient) -> None:
     """
     GIVEN a token missing 'sub' claim

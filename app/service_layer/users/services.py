@@ -2,12 +2,13 @@ from passlib.context import CryptContext
 
 from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 from app.adapters.repository.users import UserRepository
-from app.domain.users.exceptions import UserAlreadyExistsError
+from app.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
 from app.domain.users.models import (
     NewUserRequest,
     User,
     UserLoginRequest,
     UserRead,
+    UserUpdateRequest,
 )
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -54,4 +55,20 @@ async def get_user_by_email(email: str) -> UserRead | None:
         user = await repo.get_by_username_or_email("", email)
         if not user:
             return None
+        return UserRead.model_validate(user)
+
+
+async def update_user(email: str, user_update_req: UserUpdateRequest) -> UserRead:
+    async with AsyncUnitOfWork() as uow:
+        repo = UserRepository(uow.session)
+        user = await repo.get_by_username_or_email("", email)
+        if not user:
+            raise UserNotFoundError("User not found")
+        update_data = user_update_req.user.model_dump(exclude_unset=True)
+        if "password" in update_data:
+            update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
+        for key, value in update_data.items():
+            setattr(user, key, value)
+        await uow.session.commit()
+        await uow.session.refresh(user)
         return UserRead.model_validate(user)
