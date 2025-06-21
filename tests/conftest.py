@@ -7,14 +7,21 @@ import pytest
 import pytest_asyncio
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
+from polyfactory.factories.pydantic_factory import ModelFactory
 from sqlalchemy import delete
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.adapters.orm.engine import get_async_engine
 from app.main import app
+from tests.factories import UserFactory
 
 logger = logging.getLogger(__name__)
+
+
+@pytest.fixture
+def user_factory() -> ModelFactory:
+    return UserFactory()
 
 
 @pytest_asyncio.fixture
@@ -34,6 +41,12 @@ async def clean_tables() -> AsyncGenerator[None, None]:
             logger.info(f"[DEBUG] clean_tables: Deleting table {table}")
             await conn.execute(delete(table))
     yield
+
+
+@pytest.fixture
+def mock_repo(mocker: Any) -> Any:
+    repo = mocker.patch("app.service_layer.users.services.UserRepository")
+    return repo
 
 
 @pytest.fixture

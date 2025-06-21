@@ -12,17 +12,11 @@ __pycache__/
 .venv/
 .env
 
-# Poetry
-poetry.lock
-
 # Test/coverage
 .coverage
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
-
-# Alembic
-alembic/versions/
 
 # Docker
 *.log
