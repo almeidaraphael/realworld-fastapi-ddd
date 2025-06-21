@@ -46,3 +46,12 @@ async def authenticate_user(user_req: UserLoginRequest) -> UserRead | None:
         if not pwd_context.verify(user_req.user.password, user.hashed_password):
             return None
         return UserRead.model_validate(user)
+
+
+async def get_user_by_email(email: str) -> UserRead | None:
+    async with AsyncUnitOfWork() as uow:
+        repo = UserRepository(uow.session)
+        user = await repo.get_by_username_or_email("", email)
+        if not user:
+            return None
+        return UserRead.model_validate(user)

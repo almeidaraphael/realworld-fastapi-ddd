@@ -1,6 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
+from app.shared.jwt import create_access_token
 from tests.helpers import login_user, register_user
 
 
@@ -77,3 +78,63 @@ async def test_login_user_invalid(async_client: AsyncClient) -> None:
     assert resp.status_code == 400
     data = resp.json()
     assert "detail" in data
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_success(async_client: AsyncClient) -> None:
+    """
+    GIVEN a logged-in user
+    WHEN requesting /user with valid token
+    THEN the API returns 200 and user data
+    """
+    await register_user(async_client, "meuser", "me@example.com", "mepass")
+    login_resp = await login_user(async_client, "me@example.com", "mepass")
+    token = login_resp.json()["user"]["token"]
+    resp = await async_client.get("/user", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["user"]["email"] == "me@example.com"
+    assert data["user"]["username"] == "meuser"
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_unauthorized(async_client: AsyncClient) -> None:
+    """
+    GIVEN no authentication
+    WHEN requesting /user
+    THEN the API returns 401
+    """
+    resp = await async_client.get("/user")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_invalid_token_payload(async_client: AsyncClient) -> None:
+    """
+    GIVEN a token missing 'sub' claim
+    WHEN requesting /user with this token
+    THEN the API returns 401 and error detail
+    """
+    token = create_access_token({"foo": "bar"})
+    resp = await async_client.get(
+        "/user",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "Invalid authentication credentials"
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_user_not_found(async_client: AsyncClient) -> None:
+    """
+    GIVEN a token with valid 'sub' but user does not exist
+    WHEN requesting /user with this token
+    THEN the API returns 401 and error detail
+    """
+    token = create_access_token({"sub": "ghost@example.com"})
+    resp = await async_client.get(
+        "/user",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 401
+    assert resp.json()["detail"] == "User not found"

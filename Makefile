@@ -3,6 +3,8 @@ export PYTHONPATH := .
 # === Testing ===
 test:
 	env TEST_MODE=1 poetry run pytest -x
+test-cov:
+	env TEST_MODE=1 poetry run pytest --cov=app --cov-report=term-missing
 
 # === Formatting & Linting ===
 lint:

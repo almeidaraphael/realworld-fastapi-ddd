@@ -1,15 +1,16 @@
-from fastapi import APIRouter, Body, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 
-from app.domain.users.exceptions import UserAlreadyExistsError
+from app.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
 from app.domain.users.models import (
     NewUserRequest,
     UserLoginRequest,
     UserResponse,
     UserWithToken,
 )
-from app.service_layer.users.services import authenticate_user
+from app.service_layer.users.services import authenticate_user, get_user_by_email
 from app.service_layer.users.services import create_user as create_user_service
-from app.shared.jwt import create_access_token
+from app.shared.jwt import create_access_token, decode_access_token
 
 router = APIRouter()
 
@@ -28,6 +29,8 @@ user_body = Body(
         }
     },  # type: ignore[arg-type]
 )
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login")
 
 
 @router.post(
@@ -85,3 +88,44 @@ async def login_user(user: UserLoginRequest) -> UserResponse:
         image=user_data.image or "",
     )
     return UserResponse(user=user_with_token)
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserWithToken:
+    """
+    Retrieve the current authenticated user from the JWT token.
+
+    Decodes the JWT token, fetches the user by email, and returns the user profile with token.
+    Raises 401 if the token is invalid or the user does not exist.
+    """
+    payload = decode_access_token(token)
+    email = payload.get("sub")
+    if not email or not isinstance(email, str):
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    try:
+        user = await get_user_by_email(email)
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return UserWithToken(
+        email=user.email,
+        token=token,
+        username=user.username,
+        bio=user.bio or "",
+        image=user.image or "",
+    )
+
+
+@router.get(
+    "/user",
+    response_model=UserResponse,
+    summary="Get current user",
+    tags=["User and Authentication"],
+)
+async def get_user(current_user: UserWithToken = Depends(get_current_user)) -> UserResponse:
+    """
+    Get the currently authenticated user's profile.
+
+    Requires a valid JWT token. Returns the user profile with token.
+    """
+    return UserResponse(user=current_user)
