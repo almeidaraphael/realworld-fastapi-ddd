@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient
 
-from tests.helpers import register_user
+from tests.helpers import login_user, register_user
 
 
 @pytest.mark.asyncio
@@ -48,3 +48,32 @@ async def test_create_user_duplicate(async_client: AsyncClient) -> None:
     data = resp.json()
     assert "detail" in data
     assert "registered" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_login_user_success(async_client: AsyncClient) -> None:
+    """
+    GIVEN a registered user
+    WHEN logging in with correct credentials
+    THEN the API returns 200 and user data with token
+    """
+    await register_user(async_client, "loginuser", "login@example.com", "loginpass")
+    resp = await login_user(async_client, "login@example.com", "loginpass")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "user" in data
+    assert data["user"]["email"] == "login@example.com"
+    assert "token" in data["user"]
+
+
+@pytest.mark.asyncio
+async def test_login_user_invalid(async_client: AsyncClient) -> None:
+    """
+    GIVEN no user exists for credentials
+    WHEN logging in with invalid credentials
+    THEN the API returns 400 and error detail
+    """
+    resp = await login_user(async_client, "notfound@example.com", "wrongpass")
+    assert resp.status_code == 400
+    data = resp.json()
+    assert "detail" in data

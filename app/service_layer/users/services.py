@@ -6,6 +6,7 @@ from app.domain.users.exceptions import UserAlreadyExistsError
 from app.domain.users.models import (
     NewUserRequest,
     User,
+    UserLoginRequest,
     UserRead,
 )
 
@@ -34,3 +35,14 @@ async def create_user(user_req: NewUserRequest) -> UserRead:
         await repo.add(user)
         user_schema = UserRead.model_validate(user)
         return user_schema
+
+
+async def authenticate_user(user_req: UserLoginRequest) -> UserRead | None:
+    async with AsyncUnitOfWork() as uow:
+        repo = UserRepository(uow.session)
+        user = await repo.get_by_username_or_email("", user_req.user.email)
+        if not user:
+            return None
+        if not pwd_context.verify(user_req.user.password, user.hashed_password):
+            return None
+        return UserRead.model_validate(user)

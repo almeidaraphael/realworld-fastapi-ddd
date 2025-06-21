@@ -3,9 +3,11 @@ from fastapi import APIRouter, Body, HTTPException, status
 from app.domain.users.exceptions import UserAlreadyExistsError
 from app.domain.users.models import (
     NewUserRequest,
+    UserLoginRequest,
     UserResponse,
     UserWithToken,
 )
+from app.service_layer.users.services import authenticate_user
 from app.service_layer.users.services import create_user as create_user_service
 from app.shared.jwt import create_access_token
 
@@ -47,6 +49,33 @@ async def create_user(user: NewUserRequest = user_body) -> UserResponse:
         user_data = await create_user_service(user)
     except UserAlreadyExistsError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    token = create_access_token({"sub": user_data.email})
+    user_with_token = UserWithToken(
+        email=user_data.email,
+        token=token,
+        username=user_data.username,
+        bio=user_data.bio or "",
+        image=user_data.image or "",
+    )
+    return UserResponse(user=user_with_token)
+
+
+@router.post(
+    "/users/login",
+    response_model=UserResponse,
+    summary="Login for existing user",
+    tags=["User and Authentication"],
+)
+async def login_user(user: UserLoginRequest) -> UserResponse:
+    """
+    Authenticate an existing user and return a JWT token.
+
+    Accepts email and password, verifies credentials, and returns the user profile with a JWT token.
+    Returns 400 if credentials are invalid.
+    """
+    user_data = await authenticate_user(user)
+    if not user_data:
+        raise HTTPException(status_code=400, detail="Invalid email or password")
     token = create_access_token({"sub": user_data.email})
     user_with_token = UserWithToken(
         email=user_data.email,

@@ -7,6 +7,8 @@ from app.domain.users.models import (
     NewUserRequest,
     User,
     UserCreate,
+    UserLogin,
+    UserLoginRequest,
     UserResponse,
     UserWithToken,
 )
@@ -38,6 +40,26 @@ async def test_create_user_returns_user_response(user_factory) -> None:
     with patch.object(users_api, "create_user_service", new=AsyncMock(return_value=fake_user)):
         with patch.object(users_api, "create_access_token", return_value="tok"):
             resp = await users_api.create_user(user)
+            assert isinstance(resp, UserResponse)
+            assert resp.user.email == email
+            assert resp.user.token == "tok"
+
+
+@pytest.mark.asyncio
+async def test_login_user_returns_user_response(user_factory) -> None:
+    """
+    GIVEN a valid user login request to the API layer
+    WHEN the login_user function is called with valid credentials and dependencies are mocked
+    THEN it should return a UserResponse with the correct user data and token
+    """
+    user_obj = user_factory.build()
+    user_data = user_obj.model_dump()
+    email = user_data["email"]
+    user = UserLoginRequest(user=UserLogin(email=email, password="pw"))
+    fake_user = build_fake_user(user_obj)
+    with patch.object(users_api, "authenticate_user", new=AsyncMock(return_value=fake_user)):
+        with patch.object(users_api, "create_access_token", return_value="tok"):
+            resp = await users_api.login_user(user)
             assert isinstance(resp, UserResponse)
             assert resp.user.email == email
             assert resp.user.token == "tok"
