@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# VSCode
+.vscode/
+
+# Environments
+.venv/
+.env
+.env.*
+
+# Poetry
+poetry.lock
+
+# Test/coverage
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Alembic
+alembic/versions/
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Misc
+*.sqlite3
+*.db
+*.DS_Store
