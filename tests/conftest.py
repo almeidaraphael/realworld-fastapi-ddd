@@ -13,8 +13,11 @@ from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.adapters.orm.engine import get_async_engine
+from app.api.users import get_current_user
+from app.domain.users.models import UserWithToken
 from app.main import app
 from tests.factories import UserFactory, UserReadFactory
+import app.adapters.orm.engine as engine_mod
 
 logger = logging.getLogger(__name__)
 
@@ -104,3 +107,32 @@ def patch_repo_users(mocker: Any, fake_user: MagicMock) -> tuple[Any, Any]:
     repo.get_by_username_or_email = AsyncMock(return_value=fake_user)
     patcher = mocker.patch("app.service_layer.users.services.UserRepository", return_value=repo)
     return patcher, repo
+
+
+@pytest.fixture
+def fake_user():
+    return UserWithToken(
+        username="johndoe",
+        email="johndoe@email.com",
+        bio="bio",
+        image="img",
+        token="token",
+    )
+
+
+@pytest.fixture
+def override_auth(fake_user):
+    app.dependency_overrides[get_current_user] = lambda: fake_user
+    yield
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True, scope="function")
+def reset_async_engine():
+    engine_mod._engine_instance = None
+    engine_mod._engine_url = None
+    engine_mod._engine_test_mode = None
+    yield
+    engine_mod._engine_instance = None
+    engine_mod._engine_url = None
+    engine_mod._engine_test_mode = None

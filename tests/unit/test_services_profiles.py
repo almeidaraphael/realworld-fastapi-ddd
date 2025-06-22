@@ -1,6 +1,6 @@
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-
+import os
 import pytest
 
 from app.domain.profiles.exceptions import (
@@ -9,6 +9,7 @@ from app.domain.profiles.exceptions import (
     UserOrFollowerIdMissingError,
 )
 from app.service_layer.profiles import services
+from app.adapters.orm.engine import get_async_engine
 
 
 @pytest.mark.asyncio
@@ -104,3 +105,68 @@ async def test_follow_user_missing_id(mocker, patch_uow_profiles, user_factory):
     mocker.patch.object(services, "UserRepository", return_value=repo)
     with pytest.raises(UserOrFollowerIdMissingError):
         await services.follow_user("target", "follower")
+
+
+@pytest.mark.asyncio
+async def test_unfollow_user_success(mocker, patch_uow_profiles, user_factory):
+    repo = MagicMock()
+    user = user_factory.build(username="target", following=True)
+    user.id = 1
+    follower = user_factory.build(username="follower", following=True)
+    follower.id = 2
+    repo.get_by_username_or_email = AsyncMock(side_effect=[user, follower])
+    repo.unfollow_user = AsyncMock()
+    mocker.patch.object(services, "UserRepository", return_value=repo)
+    result = await services.unfollow_user("target", "follower")
+    assert result.username == "target"
+    assert result.following is False
+    repo.unfollow_user.assert_called_once_with(follower_id=2, followee_id=1)
+
+
+@pytest.mark.asyncio
+async def test_unfollow_user_profile_not_found(mocker, patch_uow_profiles, user_factory):
+    repo = MagicMock()
+    repo.get_by_username_or_email = AsyncMock(side_effect=[None, user_factory.build()])
+    mocker.patch.object(services, "UserRepository", return_value=repo)
+    with pytest.raises(ProfileNotFoundError):
+        await services.unfollow_user("ghost", "follower")
+
+
+@pytest.mark.asyncio
+async def test_unfollow_user_follower_not_found(mocker, patch_uow_profiles, user_factory):
+    repo = MagicMock()
+    repo.get_by_username_or_email = AsyncMock(side_effect=[user_factory.build(), None])
+    mocker.patch.object(services, "UserRepository", return_value=repo)
+    with pytest.raises(ProfileNotFoundError):
+        await services.unfollow_user("target", "ghost")
+
+
+@pytest.mark.asyncio
+async def test_unfollow_user_cannot_unfollow_self(mocker, patch_uow_profiles, user_factory):
+    repo = MagicMock()
+    user = user_factory.build(username="same", following=True)
+    user.id = 1
+    repo.get_by_username_or_email = AsyncMock(side_effect=[user, user])
+    mocker.patch.object(services, "UserRepository", return_value=repo)
+    with pytest.raises(CannotFollowYourselfError):
+        await services.unfollow_user("same", "same")
+
+
+@pytest.mark.asyncio
+async def test_unfollow_user_missing_id(mocker, patch_uow_profiles, user_factory):
+    repo = MagicMock()
+    user = user_factory.build(username="target", following=True)
+    user.id = None
+    follower = user_factory.build(username="follower", following=True)
+    follower.id = 2
+    repo.get_by_username_or_email = AsyncMock(side_effect=[user, follower])
+    mocker.patch.object(services, "UserRepository", return_value=repo)
+    with pytest.raises(UserOrFollowerIdMissingError):
+        await services.unfollow_user("target", "follower")
+
+
+def test_db_url_is_test_db():
+    engine = get_async_engine()
+    url = str(engine.url)
+    print(f"[DEBUG] Engine URL: {url}")
+    assert "test" in url or os.environ.get("TEST_MODE") == "true" or os.environ.get("TEST_MODE") == "1", f"Engine URL is not a test DB: {url}"

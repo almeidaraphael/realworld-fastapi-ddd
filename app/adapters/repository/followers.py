@@ -17,3 +17,14 @@ class FollowerRepository:
         if exists.first() is None:
             self.session.add(Follower(follower_id=follower_id, followee_id=followee_id))
             await self.session.commit()
+
+    async def remove(self, follower_id: int, followee_id: int) -> None:
+        result = await self.session.exec(
+            select(Follower).where(
+                (Follower.follower_id == follower_id) & (Follower.followee_id == followee_id)
+            )
+        )
+        instance = result.first()
+        if instance is not None:
+            await self.session.delete(instance)
+            await self.session.commit()

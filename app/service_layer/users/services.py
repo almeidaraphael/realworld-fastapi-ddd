@@ -34,6 +34,9 @@ async def create_user(user_req: NewUserRequest) -> UserRead:
             hashed_password=hashed_password,
         )
         await repo.add(user)
+        # Force flush and print user state after commit
+        await uow.session.commit()
+        print(f"[DEBUG] [create_user] User committed: username={user.username}, email={user.email}, id={user.id}")
         user_schema = UserRead.model_validate(user)
         return user_schema
 

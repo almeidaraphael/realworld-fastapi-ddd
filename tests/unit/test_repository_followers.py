@@ -38,3 +38,25 @@ async def test_add_follower_idempotent(async_session: AsyncSession) -> None:
         select(Follower).where(Follower.follower_id == 3, Follower.followee_id == 4)
     )
     assert len(result.all()) == 1
+
+
+@pytest.mark.asyncio
+async def test_remove_follower_removes_relationship(async_session: AsyncSession) -> None:
+    # Create users using ORM
+    follower = User(
+        id=10, username="follower_rm", email="follower_rm@example.com", hashed_password="x"
+    )
+    followee = User(
+        id=20, username="followee_rm", email="followee_rm@example.com", hashed_password="x"
+    )
+    async_session.add(follower)
+    async_session.add(followee)
+    await async_session.commit()
+    repo = FollowerRepository(async_session)
+    await repo.add(10, 20)
+    # Now remove
+    await repo.remove(10, 20)
+    result = await async_session.exec(
+        select(Follower).where(Follower.follower_id == 10, Follower.followee_id == 20)
+    )
+    assert result.first() is None

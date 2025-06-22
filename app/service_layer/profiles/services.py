@@ -54,3 +54,24 @@ async def follow_user(username: str, follower_username: str) -> Profile:
             image=user.image or USER_DEFAULT_IMAGE,
             following=True,
         )
+
+
+async def unfollow_user(username: str, follower_username: str) -> Profile:
+    async with AsyncUnitOfWork() as uow:
+        logger.info(f"[DEBUG] unfollow_user: Using session {uow.session}")
+        repo = UserRepository(uow.session)
+        user = await repo.get_by_username_or_email(username, "")
+        follower = await repo.get_by_username_or_email(follower_username, "")
+        if not user or not follower:
+            raise ProfileNotFoundError("Profile or follower not found")
+        if user.username == follower.username:
+            raise CannotFollowYourselfError("Cannot unfollow yourself")
+        if follower.id is None or user.id is None:
+            raise UserOrFollowerIdMissingError("User or follower has no id")
+        await repo.unfollow_user(follower_id=follower.id, followee_id=user.id)
+        return Profile(
+            username=user.username,
+            bio=user.bio or USER_DEFAULT_BIO,
+            image=user.image or USER_DEFAULT_IMAGE,
+            following=False,
+        )

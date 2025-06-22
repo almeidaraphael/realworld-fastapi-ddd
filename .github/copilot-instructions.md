@@ -39,6 +39,7 @@
 Do not define fixtures in individual test modules. This ensures DRY, reusable, and discoverable test setup across the codebase.
 Example: Place all patch_uow, patch_repo, user_factory, and other shared fixtures in conftest.py and import them in your tests.
 - When using httpx.AsyncClient in tests, do not use the deprecated `app=app` shortcut. Instead, use the `async_client` fixture (which uses `ASGITransport(app=...)` under the hood) for all FastAPI integration tests. This avoids deprecation warnings and follows best practices for httpx and FastAPI.
+- All test functions must include a docstring using the GIVEN/WHEN/THEN pattern to clearly describe the scenario, action, and expected outcome.
 
 ## Type Checking
 - Use mypy with strict settings (see `mypy.ini`). Type-annotate all new code. Ignore `alembic/` and `tests/`.
@@ -54,3 +55,12 @@ Example: Place all patch_uow, patch_repo, user_factory, and other shared fixture
 ## FastAPI Startup Events
 - The `on_event` method in the `FastAPI` class is deprecated. Use lifespan event handlers instead for startup/shutdown logic. Update all new and existing code to follow this best practice.
 
+## Common Pitfalls & Debugging
+
+- **Engine Singleton & Environment:** Always ensure the async engine is created after environment variables (e.g., TEST_MODE) are set. Reset the engine between tests to avoid cross-test contamination.
+- **Session/Transaction Isolation:** Set DB isolation to READ COMMITTED. Ensure all sessions are committed and closed after each request.
+- **Authentication in Tests:** Only use the override_auth fixture for unit tests that require a fake user. Do not use it for e2e/integration tests that rely on real login.
+- **Async Engine & Event Loop:** Reset the engine singleton before each test (function scope) to avoid event loop errors with asyncpg/SQLAlchemy.
+- **Test Data Consistency:** Ensure test data matches the expected state for each test, especially when using authentication overrides or patching service methods.
+- **Fixture Scope:** Use function-scoped fixtures for DB/session cleanup and engine resets. Avoid autouse unless necessary.
+- **Debugging:** Use targeted debug prints (engine URL, session info, user lookup results) to quickly identify where data or context is lost between layers or requests.

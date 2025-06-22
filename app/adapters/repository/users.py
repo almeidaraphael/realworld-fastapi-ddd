@@ -12,7 +12,9 @@ class UserRepository:
     async def get_by_username_or_email(self, username: str, email: str) -> User | None:
         statement = select(User).where((User.username == username) | (User.email == email))
         result = await self.session.exec(statement)
-        return result.first()
+        user = result.first()
+        print(f"[DEBUG] [get_by_username_or_email] username={username}, email={email}, found={user}")
+        return user
 
     async def add(self, user: User) -> User:
         self.session.add(user)
@@ -23,6 +25,10 @@ class UserRepository:
     async def follow_user(self, follower_id: int, followee_id: int) -> None:
         follower_repo = FollowerRepository(self.session)
         await follower_repo.add(follower_id, followee_id)
+
+    async def unfollow_user(self, follower_id: int, followee_id: int) -> None:
+        follower_repo = FollowerRepository(self.session)
+        await follower_repo.remove(follower_id, followee_id)
 
     async def is_following(self, follower_id: int, followee_id: int) -> bool:
         from app.domain.users.followers import Follower
