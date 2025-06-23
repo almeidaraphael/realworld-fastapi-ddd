@@ -12,12 +12,13 @@ from sqlalchemy import delete
 from sqlmodel import SQLModel
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+import app.adapters.orm.engine as engine_mod
 from app.adapters.orm.engine import get_async_engine
 from app.api.users import get_current_user
-from app.domain.users.models import UserWithToken
+from app.domain.users.schemas import UserWithToken
 from app.main import app
 from tests.factories import UserFactory, UserReadFactory
-import app.adapters.orm.engine as engine_mod
+from tests.helpers import login_user, register_user
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,7 @@ def patch_repo_users(mocker: Any, fake_user: MagicMock) -> tuple[Any, Any]:
 @pytest.fixture
 def fake_user():
     return UserWithToken(
+        id=1,
         username="johndoe",
         email="johndoe@email.com",
         bio="bio",
@@ -131,8 +133,16 @@ def override_auth(fake_user):
 def reset_async_engine():
     engine_mod._engine_instance = None
     engine_mod._engine_url = None
-    engine_mod._engine_test_mode = None
     yield
     engine_mod._engine_instance = None
     engine_mod._engine_url = None
-    engine_mod._engine_test_mode = None
+
+
+@pytest.fixture
+def register_user_fixture():
+    return register_user
+
+
+@pytest.fixture
+def login_user_fixture():
+    return login_user

@@ -1,7 +1,10 @@
+import logging
+
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.adapters.repository.followers import FollowerRepository
+from app.domain.users.followers import Follower
 from app.domain.users.models import User
 
 
@@ -13,7 +16,9 @@ class UserRepository:
         statement = select(User).where((User.username == username) | (User.email == email))
         result = await self.session.exec(statement)
         user = result.first()
-        print(f"[DEBUG] [get_by_username_or_email] username={username}, email={email}, found={user}")
+        logging.debug(
+            "[get_by_username_or_email] username=%s, email=%s, found=%s", username, email, user
+        )
         return user
 
     async def add(self, user: User) -> User:
@@ -31,8 +36,6 @@ class UserRepository:
         await follower_repo.remove(follower_id, followee_id)
 
     async def is_following(self, follower_id: int, followee_id: int) -> bool:
-        from app.domain.users.followers import Follower
-
         exists = await self.session.exec(
             select(Follower.follower_id).where(
                 (Follower.follower_id == follower_id) & (Follower.followee_id == followee_id)

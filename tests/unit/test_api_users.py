@@ -4,9 +4,9 @@ import pytest
 from fastapi import HTTPException
 
 from app.api import users as users_api
-from app.domain.users.models import (
+from app.domain.users.models import User
+from app.domain.users.schemas import (
     NewUserRequest,
-    User,
     UserCreate,
     UserLogin,
     UserLoginRequest,
@@ -22,6 +22,7 @@ def build_fake_user(user_obj: User, token: str = "tok") -> UserWithToken:
         username=user_obj.username,
         bio=user_obj.bio,
         image=user_obj.image,
+        id=user_obj.id or 1,
     )
 
 
@@ -77,6 +78,7 @@ async def test_get_current_user_return_statement(user_factory) -> None:
             "get_user_by_email",
             new=AsyncMock(
                 return_value=UserWithToken(
+                    id=1,
                     email=email,
                     token="tok",
                     username=user_obj.username,

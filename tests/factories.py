@@ -1,6 +1,7 @@
 from polyfactory.factories.pydantic_factory import ModelFactory
 
-from app.domain.users.models import User, UserRead
+from app.domain.users.models import User
+from app.domain.users.schemas import UserRead
 from tests.factory_base import fake
 
 

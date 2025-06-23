@@ -1,11 +1,13 @@
+import logging
+
 from passlib.context import CryptContext
 
 from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 from app.adapters.repository.users import UserRepository
 from app.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
-from app.domain.users.models import (
+from app.domain.users.models import User
+from app.domain.users.schemas import (
     NewUserRequest,
-    User,
     UserLoginRequest,
     UserRead,
     UserUpdateRequest,
@@ -36,8 +38,13 @@ async def create_user(user_req: NewUserRequest) -> UserRead:
         await repo.add(user)
         # Force flush and print user state after commit
         await uow.session.commit()
-        print(f"[DEBUG] [create_user] User committed: username={user.username}, email={user.email}, id={user.id}")
-        user_schema = UserRead.model_validate(user)
+        logging.debug(
+            "[create_user] User committed: username=%s, email=%s, id=%s",
+            user.username,
+            user.email,
+            user.id,
+        )
+        user_schema = UserRead.model_validate(user.model_dump())
         return user_schema
 
 
@@ -49,7 +56,7 @@ async def authenticate_user(user_req: UserLoginRequest) -> UserRead | None:
             return None
         if not pwd_context.verify(user_req.user.password, user.hashed_password):
             return None
-        return UserRead.model_validate(user)
+        return UserRead.model_validate(user.model_dump())
 
 
 async def get_user_by_email(email: str) -> UserRead | None:
@@ -58,7 +65,7 @@ async def get_user_by_email(email: str) -> UserRead | None:
         user = await repo.get_by_username_or_email("", email)
         if not user:
             return None
-        return UserRead.model_validate(user)
+        return UserRead.model_validate(user.model_dump())
 
 
 async def update_user(email: str, user_update_req: UserUpdateRequest) -> UserRead:
@@ -74,4 +81,4 @@ async def update_user(email: str, user_update_req: UserUpdateRequest) -> UserRea
             setattr(user, key, value)
         await uow.session.commit()
         await uow.session.refresh(user)
-        return UserRead.model_validate(user)
+        return UserRead.model_validate(user.model_dump())

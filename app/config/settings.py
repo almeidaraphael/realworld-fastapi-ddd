@@ -1,10 +1,11 @@
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
 
 class AppSettings(BaseSettings):
     secret_key: str
     debug: bool = False
-    test_mode: bool = False
+    env_file: str = ".env"
 
     model_config = {
         "env_file": ".env",
@@ -39,17 +40,7 @@ class DatabaseSettings(BaseSettings):
 
 
 def get_database_settings() -> DatabaseSettings:
+    app_settings = get_app_settings()
+    if getattr(app_settings, "env_file", ".env") != ".env":
+        load_dotenv(app_settings.env_file, override=True)
     return DatabaseSettings.model_validate({})
-
-
-class TestDatabaseSettings(DatabaseSettings):
-    model_config = {
-        "env_file": ".env",
-        "env_file_encoding": "utf-8",
-        "env_prefix": "TEST_",
-        "extra": "ignore",
-    }
-
-
-def get_test_database_settings() -> TestDatabaseSettings:
-    return TestDatabaseSettings.model_validate({})

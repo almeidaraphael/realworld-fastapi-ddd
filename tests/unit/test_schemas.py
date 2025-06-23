@@ -1,4 +1,4 @@
-from app.domain.users.models import NewUserRequest, UserResponse
+from app.domain.users.schemas import NewUserRequest, UserResponse
 
 
 def test_new_user_request_schema() -> None:
@@ -22,6 +22,7 @@ def test_user_response_schema() -> None:
     """
     data = {
         "user": {
+            "id": 1,
             "email": "test@example.com",
             "token": "sometoken",
             "username": "testuser",

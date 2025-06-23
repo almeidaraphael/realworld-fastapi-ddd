@@ -11,7 +11,9 @@ async def test_follow_profile_success(async_client: AsyncClient, user_read_facto
     WHEN one user follows the other
     THEN the API returns 200 and the profile shows following=True
     """
-    print("[DEBUG] test_follow_profile_success: START")
+    import logging
+
+    logging.debug("[DEBUG] test_follow_profile_success: START")
     user1 = user_read_factory.build(username="user1_test", email="user1_test@example.com")
     user2 = user_read_factory.build(username="user2_test", email="user2_test@example.com")
     user1_data = user1.model_dump()
@@ -20,35 +22,35 @@ async def test_follow_profile_success(async_client: AsyncClient, user_read_facto
     user1_email = user1_data["email"]
     user2_username = user2_data["username"]
     user2_email = user2_data["email"]
-    print("[DEBUG] user1_username:", user1_username)
-    print("[DEBUG] user2_username:", user2_username)
-    print("[DEBUG] user1_email:", user1_email)
-    print("[DEBUG] user2_email:", user2_email)
+    logging.debug("[DEBUG] user1_username: %s", user1_username)
+    logging.debug("[DEBUG] user2_username: %s", user2_username)
+    logging.debug("[DEBUG] user1_email: %s", user1_email)
+    logging.debug("[DEBUG] user2_email: %s", user2_email)
     assert user1_username != user2_username, "Usernames must be unique"
     assert user1_email != user2_email, "Emails must be unique"
     password = "testpass"
-    print("[DEBUG] Registering user1...")
+    logging.debug("[DEBUG] Registering user1...")
     await register_user(async_client, user1_username, user1_email, password)
-    print("[DEBUG] Registering user2...")
+    logging.debug("[DEBUG] Registering user2...")
     await register_user(async_client, user2_username, user2_email, password)
-    print("[DEBUG] Logging in user1...")
+    logging.debug("[DEBUG] Logging in user1...")
     login_resp = await login_user(async_client, user1_email, password)
-    print("[DEBUG] login_resp status:", login_resp.status_code)
-    print("[DEBUG] login_resp body:", login_resp.text)
+    logging.debug("[DEBUG] login_resp status: %s", login_resp.status_code)
+    logging.debug("[DEBUG] login_resp body: %s", login_resp.text)
     token = login_resp.json()["user"]["token"]
-    print("[DEBUG] Following user2...")
+    logging.debug("[DEBUG] Following user2...")
     resp = await async_client.post(
         f"/profiles/{user2_username}/follow",
         headers={"Authorization": f"Bearer {token}"},
     )
-    print("[DEBUG] follow response status:", resp.status_code)
-    print("[DEBUG] follow response body:", resp.text)
+    logging.debug("[DEBUG] follow response status: %s", resp.status_code)
+    logging.debug("[DEBUG] follow response body: %s", resp.text)
     if resp.status_code != 200:
-        print("[ERROR] Response status:", resp.status_code)
-        print("[ERROR] Response body:", resp.text)
+        logging.error("[ERROR] Response status: %s", resp.status_code)
+        logging.error("[ERROR] Response body: %s", resp.text)
     assert resp.status_code == 200
     data = resp.json()["profile"]
-    print("[DEBUG] profile response:", data)
+    logging.debug("[DEBUG] profile response: %s", data)
     assert data["username"] == user2_username
     assert data["following"] is True
 

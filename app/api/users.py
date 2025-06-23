@@ -2,7 +2,7 @@ from fastapi import APIRouter, Body, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 from app.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
-from app.domain.users.models import (
+from app.domain.users.schemas import (
     NewUserRequest,
     UserLoginRequest,
     UserResponse,
@@ -61,6 +61,7 @@ async def create_user(user: NewUserRequest = user_body) -> UserResponse:
         username=user_data.username,
         bio=user_data.bio or "",
         image=user_data.image or "",
+        id=user_data.id,
     )
     return UserResponse(user=user_with_token)
 
@@ -88,6 +89,7 @@ async def login_user(user: UserLoginRequest) -> UserResponse:
         username=user_data.username,
         bio=user_data.bio or "",
         image=user_data.image or "",
+        id=user_data.id,
     )
     return UserResponse(user=user_with_token)
 
@@ -115,6 +117,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserWithToken
         username=user.username,
         bio=user.bio or "",
         image=user.image or "",
+        id=user.id,
     )
 
 
@@ -157,5 +160,6 @@ async def update_user(
         username=updated_user.username,
         bio=updated_user.bio or "",
         image=updated_user.image or "",
+        id=updated_user.id,
     )
     return UserResponse(user=user_with_token)

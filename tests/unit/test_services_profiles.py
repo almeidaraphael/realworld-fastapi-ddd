@@ -1,15 +1,16 @@
+import logging
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
-import os
+
 import pytest
 
+from app.adapters.orm.engine import get_async_engine
 from app.domain.profiles.exceptions import (
     CannotFollowYourselfError,
     ProfileNotFoundError,
     UserOrFollowerIdMissingError,
 )
 from app.service_layer.profiles import services
-from app.adapters.orm.engine import get_async_engine
 
 
 @pytest.mark.asyncio
@@ -168,5 +169,5 @@ async def test_unfollow_user_missing_id(mocker, patch_uow_profiles, user_factory
 def test_db_url_is_test_db():
     engine = get_async_engine()
     url = str(engine.url)
-    print(f"[DEBUG] Engine URL: {url}")
-    assert "test" in url or os.environ.get("TEST_MODE") == "true" or os.environ.get("TEST_MODE") == "1", f"Engine URL is not a test DB: {url}"
+    logging.debug(f"[DEBUG] Engine URL: {url}")
+    assert "test" in url, f"Engine URL is not a test DB: {url}"

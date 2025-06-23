@@ -1,15 +1,17 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.adapters.orm.engine import get_async_engine
 from app.api.users import get_current_user
 from app.domain.profiles.exceptions import (
     CannotFollowYourselfError,
     ProfileNotFoundError,
     UserOrFollowerIdMissingError,
 )
-from app.domain.profiles.models import ProfileResponse
-from app.domain.users.models import UserWithToken
+from app.domain.profiles.schemas import ProfileRead, ProfileResponse
+from app.domain.users.schemas import UserWithToken
 from app.service_layer.profiles.services import follow_user, get_profile_by_username, unfollow_user
-from app.adapters.orm.engine import get_async_engine
 
 router = APIRouter(prefix="/profiles", tags=["Profile"])
 
@@ -31,7 +33,7 @@ async def get_profile(
         )
     except ProfileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return ProfileResponse(profile=profile)
+    return ProfileResponse(profile=ProfileRead.model_validate(profile))
 
 
 @router.post("/{username}/follow", response_model=ProfileResponse, status_code=status.HTTP_200_OK)
@@ -46,7 +48,7 @@ async def follow_profile(
     internal errors.
     """
     engine = get_async_engine()
-    print(f"[DEBUG] [follow_profile] Engine URL: {engine.url}")
+    logging.debug(f"[follow_profile] Engine URL: {engine.url}")
     try:
         profile = await follow_user(username, current_user.username)
     except CannotFollowYourselfError as exc:
@@ -55,7 +57,7 @@ async def follow_profile(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except UserOrFollowerIdMissingError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return ProfileResponse(profile=profile)
+    return ProfileResponse(profile=ProfileRead.model_validate(profile))
 
 
 @router.delete("/{username}/follow", response_model=ProfileResponse, status_code=status.HTTP_200_OK)
@@ -78,4 +80,4 @@ async def unfollow_profile(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except UserOrFollowerIdMissingError as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
-    return ProfileResponse(profile=profile)
+    return ProfileResponse(profile=ProfileRead.model_validate(profile))

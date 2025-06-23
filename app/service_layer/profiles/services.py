@@ -9,13 +9,13 @@ from app.domain.profiles.exceptions import (
     ProfileNotFoundError,
     UserOrFollowerIdMissingError,
 )
-from app.domain.profiles.models import Profile
+from app.domain.profiles.schemas import ProfileRead
 from app.shared import USER_DEFAULT_BIO, USER_DEFAULT_IMAGE
 
 logger = logging.getLogger(__name__)
 
 
-async def get_profile_by_username(username: str, current_user: str | None = None) -> Profile:
+async def get_profile_by_username(username: str, current_user: str | None = None) -> ProfileRead:
     async with AsyncUnitOfWork() as uow:
         logger.info(f"[DEBUG] get_profile_by_username: Using session {uow.session}")
         repo = UserRepository(uow.session)
@@ -27,7 +27,7 @@ async def get_profile_by_username(username: str, current_user: str | None = None
             follower = await repo.get_by_username_or_email(current_user, "")
             if follower and follower.id is not None and user.id is not None:
                 following = await repo.is_following(follower_id=follower.id, followee_id=user.id)
-        return Profile(
+        return ProfileRead(
             username=user.username,
             bio=user.bio or USER_DEFAULT_BIO,
             image=user.image or USER_DEFAULT_IMAGE,
@@ -35,7 +35,7 @@ async def get_profile_by_username(username: str, current_user: str | None = None
         )
 
 
-async def follow_user(username: str, follower_username: str) -> Profile:
+async def follow_user(username: str, follower_username: str) -> ProfileRead:
     async with AsyncUnitOfWork() as uow:
         logger.info(f"[DEBUG] follow_user: Using session {uow.session}")
         repo = UserRepository(uow.session)
@@ -48,7 +48,7 @@ async def follow_user(username: str, follower_username: str) -> Profile:
         if follower.id is None or user.id is None:
             raise UserOrFollowerIdMissingError("User or follower has no id")
         await repo.follow_user(follower_id=follower.id, followee_id=user.id)
-        return Profile(
+        return ProfileRead(
             username=user.username,
             bio=user.bio or USER_DEFAULT_BIO,
             image=user.image or USER_DEFAULT_IMAGE,
@@ -56,7 +56,7 @@ async def follow_user(username: str, follower_username: str) -> Profile:
         )
 
 
-async def unfollow_user(username: str, follower_username: str) -> Profile:
+async def unfollow_user(username: str, follower_username: str) -> ProfileRead:
     async with AsyncUnitOfWork() as uow:
         logger.info(f"[DEBUG] unfollow_user: Using session {uow.session}")
         repo = UserRepository(uow.session)
@@ -69,7 +69,7 @@ async def unfollow_user(username: str, follower_username: str) -> Profile:
         if follower.id is None or user.id is None:
             raise UserOrFollowerIdMissingError("User or follower has no id")
         await repo.unfollow_user(follower_id=follower.id, followee_id=user.id)
-        return Profile(
+        return ProfileRead(
             username=user.username,
             bio=user.bio or USER_DEFAULT_BIO,
             image=user.image or USER_DEFAULT_IMAGE,

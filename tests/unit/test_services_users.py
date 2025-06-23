@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from app.domain.users.exceptions import UserAlreadyExistsError
-from app.domain.users.models import (
+from app.domain.users.schemas import (
     NewUserRequest,
     UserCreate,
     UserRead,
@@ -43,7 +43,7 @@ async def test_create_user_success(
     user_data = UserCreate(username="testuser", email="test@example.com", password="p")
     req = NewUserRequest(user=user_data)
     patch_repo_users[1].get_by_username_or_email = AsyncMock(return_value=None)
-    patch_repo_users[1].add = AsyncMock()
+    patch_repo_users[1].add = AsyncMock(side_effect=lambda user: setattr(user, "id", 1))
     mocker.patch("app.service_layer.users.services.get_password_hash", return_value="hashed")
     _, _ = patch_uow_users
 

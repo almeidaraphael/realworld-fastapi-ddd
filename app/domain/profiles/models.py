@@ -2,15 +2,11 @@
 
 from typing import Optional
 
-from sqlmodel import SQLModel
+from sqlmodel import Field, SQLModel
 
 
-class Profile(SQLModel):
+class Profile(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
     username: str
     bio: Optional[str] = ""
     image: Optional[str] = ""
-    following: bool = False
-
-
-class ProfileResponse(SQLModel):
-    profile: Profile

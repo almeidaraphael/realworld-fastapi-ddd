@@ -1,60 +1,60 @@
 # fastapi-realworld-demo
 
-A FastAPI project following Domain-Driven Design (DDD) principles, implementing the RealWorld API spec.
+A production-grade FastAPI project implementing the RealWorld API spec using Domain-Driven Design (DDD) principles.
+
+## Overview
+
+- **Tech stack:** FastAPI, SQLModel, Pydantic, PostgreSQL, Alembic, asyncpg, Poetry
+- **Architecture:** DDD, layered by domain (users, articles, profiles, etc.)
+- **API Spec:** [RealWorld API Spec](https://realworld-docs.netlify.app/docs/specs/backend-specs/endpoints/)
+- **Testing:** pytest, pytest-asyncio, httpx, pydantic-factories
+- **Config:** Pydantic Settings, `.env` files
+- **Docker:** Used only for PostgreSQL (app runs locally)
 
 ## Project Structure
 ```
 alembic/          # Database migrations
 app/
-  adapters/       # Infrastructure (ORM, repositories)
-  api/            # FastAPI routers (per subdomain)
-  config/         # App settings
-  domain/         # Domain models, schemas, commands, events (per subdomain)
-  service_layer/  # Application services (per subdomain)
-  shared/         # Shared utilities (JWT, pagination, etc.)  
+  adapters/       # Infrastructure (ORM, repositories, UoW)
+  api/            # FastAPI routers (per domain)
+  config/         # App settings (Pydantic Settings)
+  domain/         # Domain models, schemas, exceptions (per domain)
+  service_layer/  # Application services (per domain)
+  shared/         # Shared utilities (JWT, pagination, etc.)
   main.py         # FastAPI app entrypoint
 pyproject.toml    # Poetry dependency management
-Dockerfile        # Docker build for app
-docker-compose.yml # Docker Compose for database
+Dockerfile        # Docker build for app (not used in dev)
+docker-compose.yml # Docker Compose for database only
 tests/            # Unit, integration, and end-to-end tests
-  unit/          # Unit tests
-  integration/   # Integration tests
-  e2e/           # End-to-end tests
+  unit/          # Unit tests (pure logic, no I/O)
+  integration/   # Integration tests (DB, API, etc.)
+  e2e/           # End-to-end tests (full stack)
 ```
 
-## Running the Project
+## Quickstart
 
-- The application runs directly with Poetry and Uvicorn (not in Docker).
-- Docker is used **only for the PostgreSQL database**.
-- All common commands are available via the `Makefile`.
-
-### 1. Start the Database (Docker Compose)
+### 1. Start the Database and Run Migrations (Docker Compose)
 
 ```sh
 make up-db
 ```
 
-### 2. Run Database Migrations
-
-```sh
-make migrate
-```
-
-### 3. Start the FastAPI Application
+### 2. Start the FastAPI Application
 
 ```sh
 make run
 ```
 
-The API will be available at http://localhost:8000
+- API docs: http://localhost:8000/docs
+- OpenAPI: http://localhost:8000/openapi.json
 
 ## Running Tests
 
-- Tests require the database to be running (see above).
-- All configuration is managed via Pydantic Settings and `.env` files.
-- Tests always run against a dedicated test database instance.
+- Tests require the test database to be running (see below).
+- All tests run against a dedicated test database instance.
+- Test data is generated using pydantic-factories for realism and coverage.
 
-### Start the Test Database
+### Start the Test Database and Run Migrations
 
 ```sh
 make up-db-test
@@ -79,10 +79,10 @@ make down-db-test
 ```
 
 ### Test Types
-- **Unit tests:** `tests/unit/`
-- **Integration tests:** `tests/integration/`
-- **End-to-end tests:** `tests/e2e/`
+- **Unit tests:** `tests/unit/` (pure logic, no DB)
+- **Integration tests:** `tests/integration/` (DB, API, etc.)
+- **End-to-end tests:** `tests/e2e/` (full stack, RealWorld flows)
 
----
-
-See `.github/copilot-instructions.md` for contributor and code generation guidelines.
+## Reference
+- [RealWorld API Spec](https://realworld-docs.netlify.app/docs/specs/backend-specs/endpoints/)
+- See `.github/copilot-instructions.md` for contributor and code generation guidelines.

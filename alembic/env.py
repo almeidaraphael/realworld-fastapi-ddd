@@ -1,25 +1,20 @@
-import asyncio
+import logging
 from logging.config import fileConfig
 
 from sqlalchemy.engine import Connection
 from sqlmodel import SQLModel
 
 from alembic import context
-from app.config.settings import get_app_settings, get_database_settings, get_test_database_settings
-
-# Import all model modules so SQLModel.metadata is complete for Alembic
+from app.config.settings import get_database_settings
 
 config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Use test DB settings if TEST_MODE is true in AppSettings, else use dev DB
-app_settings = get_app_settings()
-if app_settings.test_mode:
-    db_settings = get_test_database_settings()
-else:
-    db_settings = get_database_settings()
+db_settings = get_database_settings()
 DATABASE_URL = str(db_settings.database_url)
+logger = logging.getLogger("alembic.env")
+logger.info(f"[alembic debug] DATABASE_URL: {DATABASE_URL}")
 
 target_metadata = SQLModel.metadata
 
@@ -59,4 +54,6 @@ async def run_migrations_online() -> None:
 if context.is_offline_mode():
     run_migrations_offline()
 else:
+    import asyncio
+
     asyncio.run(run_migrations_online())

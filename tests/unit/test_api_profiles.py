@@ -4,7 +4,8 @@ import pytest
 from fastapi import status
 
 from app.domain.profiles.exceptions import CannotFollowYourselfError
-from app.domain.profiles.models import Profile
+from app.domain.profiles.schemas import ProfileRead
+from app.domain.users.models import User
 
 
 @pytest.mark.asyncio
@@ -26,7 +27,7 @@ async def test_get_profile_unauthenticated(async_client):
 
 @pytest.mark.asyncio
 async def test_get_profile_success(async_client, override_auth, fake_user):
-    fake_profile = Profile(
+    fake_profile = ProfileRead(
         username=fake_user.username,
         bio=fake_user.bio,
         image=fake_user.image,
@@ -49,8 +50,6 @@ async def test_get_profile_success(async_client, override_auth, fake_user):
 @pytest.mark.asyncio
 async def test_unfollow_profile_success(async_client, override_auth, fake_user, async_session):
     # Ensure the user exists in the DB
-    from app.domain.users.models import User
-
     user = User(
         username=fake_user.username,
         email=fake_user.email,
@@ -60,7 +59,7 @@ async def test_unfollow_profile_success(async_client, override_auth, fake_user, 
     )
     async_session.add(user)
     await async_session.commit()
-    fake_profile = Profile(
+    fake_profile = ProfileRead(
         username=fake_user.username,
         bio=fake_user.bio,
         image=fake_user.image,
