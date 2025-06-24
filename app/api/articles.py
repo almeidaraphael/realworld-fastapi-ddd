@@ -1,12 +1,21 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 
+from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 from app.api.users import get_current_user, get_current_user_optional
+from app.domain.articles.exceptions import ArticleNotFoundError, ArticlePermissionError
 from app.domain.articles.schemas import (
     ArticleCreateRequest,
     ArticleResponse,
     ArticlesListResponse,
     ArticleUpdateRequest,
 )
+from app.domain.comments.exceptions import CommentNotFoundError, CommentPermissionError
+from app.domain.comments.schemas import (
+    CommentCreateRequest,
+    CommentResponse,
+    CommentsResponse,
+)
+from app.domain.users.exceptions import UserNotFoundError
 from app.domain.users.schemas import UserWithToken
 from app.service_layer.articles.services import (
     create_article,
@@ -16,6 +25,7 @@ from app.service_layer.articles.services import (
     list_articles,
     update_article,
 )
+from app.service_layer.comments.services import CommentService
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
@@ -96,8 +106,6 @@ async def get_article(
     """
     Get a single article by its slug.
     """
-    from app.domain.articles.exceptions import ArticleNotFoundError
-
     try:
         result = await get_article_by_slug(slug, current_user)
     except ArticleNotFoundError as exc:
@@ -122,8 +130,6 @@ async def update_article_endpoint(
 
     Only the author of the article can update it.
     """
-    from app.domain.articles.exceptions import ArticleNotFoundError, ArticlePermissionError
-
     try:
         result = await update_article(slug, article.article, current_user)
     except ArticleNotFoundError as exc:
@@ -149,13 +155,101 @@ async def delete_article_endpoint(
 
     Only the author of the article can delete it.
     """
-    from app.domain.articles.exceptions import ArticleNotFoundError, ArticlePermissionError
-
     try:
         await delete_article(slug, current_user)
     except ArticleNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except ArticlePermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{slug}/comments",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a comment on an article",
+)
+async def create_comment_endpoint(
+    slug: str,
+    comment: CommentCreateRequest = Body(...),
+    current_user: UserWithToken = Depends(get_current_user),
+) -> CommentResponse:
+    """
+    Create a new comment on an article.
+    """
+    try:
+        async with AsyncUnitOfWork() as uow:
+            service = CommentService(uow)
+            created_comment = await service.add_comment_to_article(
+                article_slug=slug,
+                comment_data=comment.comment,
+                current_user_id=current_user.id,
+            )
+            return CommentResponse(comment=created_comment)
+    except ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{slug}/comments",
+    response_model=CommentsResponse,
+    summary="Get comments for an article",
+)
+async def get_comments_endpoint(
+    slug: str,
+    current_user: UserWithToken | None = Depends(get_current_user_optional),
+) -> CommentsResponse:
+    """
+    Get all comments for an article.
+    """
+    try:
+        async with AsyncUnitOfWork() as uow:
+            service = CommentService(uow)
+            user_id = current_user.id if current_user else None
+            comments = await service.get_comments_from_article(
+                article_slug=slug,
+                current_user_id=user_id,
+            )
+            return CommentsResponse(comments=comments)
+    except ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.delete(
+    "/{slug}/comments/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a comment from an article",
+)
+async def delete_comment_endpoint(
+    slug: str,
+    comment_id: int,
+    current_user: UserWithToken = Depends(get_current_user),
+) -> None:
+    """
+    Delete a comment from an article.
+    Only the author of the comment can delete it.
+    """
+    try:
+        async with AsyncUnitOfWork() as uow:
+            service = CommentService(uow)
+            await service.delete_comment(
+                article_slug=slug,
+                comment_id=comment_id,
+                current_user_id=current_user.id,
+            )
+    except ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except CommentNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except CommentPermissionError as exc:
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
