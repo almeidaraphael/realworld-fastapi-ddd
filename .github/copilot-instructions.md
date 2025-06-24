@@ -42,6 +42,15 @@
 - Follow/unfollow users
 - Healthcheck endpoint for readiness/liveness probes
 
+## Comments Implementation Guidelines
+- Comments are nested under articles: `/articles/{slug}/comments` endpoints
+- Comments domain follows same structure as other domains: models.py, schemas.py, orm.py, exceptions.py
+- Comment repository extends basic CRUD with `list_by_article_id` method
+- Comment service handles article existence validation before comment operations
+- Only comment authors can delete their own comments (permission check in service layer)
+- Comments include author information with following status when user is authenticated
+- Use CASCADE DELETE on foreign keys to automatically clean up comments when articles/users are deleted
+
 ## Testing Guidelines
 - Use pytest, pytest-asyncio, httpx, and pytest-mock for all tests.
 - When running tests, prefer using the test explorer/run_tests tool over terminal commands for better integration and result parsing.
@@ -58,6 +67,10 @@
 - Ensure the async engine is reset between tests to avoid cross-test contamination and event loop errors.
 - Use targeted debug prints (engine URL, session info, user lookup results) to quickly identify where data or context is lost between layers or requests.
 - All test data must be realistic and match the expected state for each test, especially when using authentication overrides or patching service methods.
+- **Always prefer pytest patterns over unittest**: Use `pytest-mock` (mocker fixture) instead of `unittest.mock`. Use `mocker.patch()`, `mocker.Mock()`, `mocker.AsyncMock()` etc.
+- **Unit tests should use pytest fixtures extensively**: Create reusable fixtures for common test data and mock objects.
+- **Integration tests should test full request/response cycles**: Include authentication, permission checks, and database operations.
+- **E2E tests should cover complete user workflows**: From user creation through feature usage to cleanup.
 
 ## Type Checking
 - Use mypy with strict settings (see `mypy.ini`). Type-annotate all new code. Ignore `alembic/` and `tests/`.
@@ -88,6 +101,11 @@
 - Use targeted debug prints (engine URL, session info, user lookup results) to quickly identify where data or context is lost between layers or requests.
 - Always check for deprecation warnings and update code to follow latest best practices.
 - Validate that all endpoints, models, and error responses match the RealWorld spec and are covered by tests.
+- **Database Migrations**: Follow existing migration naming patterns (`YYYYMMDD_add_table_name.py`). Always include both upgrade() and downgrade() functions.
+- **Repository Pattern**: Each domain should have its own repository with domain-specific query methods (e.g., `list_by_article_id` for comments).
+- **Service Layer Architecture**: Services should handle business logic, validate domain rules, and coordinate between repositories. They should not handle HTTP concerns.
+- **Following/Relationship Logic**: Use UserRepository.is_following() method to check follow relationships, not FollowerRepository.
+- **Nullable ID Handling**: Always check for None when dealing with model IDs from the database, especially in service layer validation.
 
 ## File Structure for Models and Schemas
 - Define all API/Pydantic schemas in `schemas.py` using Pydantic's BaseModel.
