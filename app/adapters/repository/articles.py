@@ -109,3 +109,50 @@ class ArticleRepository:
             )
         )
         return result.scalars().first() is not None
+
+    async def feed_articles(
+        self,
+        *,
+        follower_id: int,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> tuple[list[Article], int]:
+        """
+        Get articles from users that the given user follows.
+
+        Args:
+            follower_id: ID of the user whose feed to get
+            offset: Pagination offset
+            limit: Pagination limit
+
+        Returns:
+            Tuple of (articles list, total count)
+        """
+        from app.domain.users.orm import follower_table
+
+        # Get articles from users that follower_id follows
+        followed_users_subquery = select(follower_table.c.followee_id).where(
+            follower_table.c.follower_id == follower_id
+        )
+
+        query = (
+            select(Article)
+            .where(article_table.c.author_id.in_(followed_users_subquery))
+            .order_by(article_table.c.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+
+        result = await self.session.execute(query)
+        articles = list(result.scalars().all())
+
+        # Count total articles in feed
+        count_query = (
+            select(func.count())
+            .select_from(article_table)
+            .where(article_table.c.author_id.in_(followed_users_subquery))
+        )
+        count_result = await self.session.execute(count_query)
+        total = count_result.scalar_one()
+
+        return articles, total

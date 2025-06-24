@@ -7,7 +7,7 @@ from app.domain.articles.schemas import (
     ArticlesListResponse,
 )
 from app.domain.users.schemas import UserWithToken
-from app.service_layer.articles.services import create_article, list_articles
+from app.service_layer.articles.services import create_article, feed_articles, list_articles
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
@@ -51,6 +51,26 @@ async def get_articles(
         result = await list_articles(
             tag=tag, author=author, favorited_by=favorited, limit=limit, offset=offset
         )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ArticlesListResponse.model_validate(result)
+
+
+@router.get(
+    "/feed",
+    response_model=ArticlesListResponse,
+    summary="Get articles feed",
+)
+async def get_feed(
+    limit: int = 20,
+    offset: int = 0,
+    current_user: UserWithToken = Depends(get_current_user),
+) -> ArticlesListResponse:
+    """
+    Get articles from users that the current user follows.
+    """
+    try:
+        result = await feed_articles(current_user, limit=limit, offset=offset)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ArticlesListResponse.model_validate(result)

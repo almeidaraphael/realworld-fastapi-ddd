@@ -218,3 +218,34 @@ async def create_article(article: "ArticleCreate", user: UserWithToken) -> dict:
             created, author_obj, following=False, favorited=False, favorites_count=0
         )
         return {"article": article_out.model_dump()}
+
+
+async def feed_articles(
+    current_user: UserWithToken,
+    limit: int = 20,
+    offset: int = 0,
+    uow_factory: type[AsyncUnitOfWork] = AsyncUnitOfWork,
+) -> dict:
+    """Get articles from users that the current user follows."""
+    async with uow_factory() as uow:
+        repo = ArticleRepository(uow.session)
+
+        articles, total = await repo.feed_articles(
+            follower_id=current_user.id, offset=offset, limit=limit
+        )
+
+        # Build the response using existing helper functions
+        follower_id = current_user.id
+        authors = await _batch_fetch_authors(uow.session, list(articles))
+        following_map = await _batch_fetch_following_map(
+            uow.session, follower_id, list(authors.keys())
+        )
+        article_ids = [a.id for a in articles if a.id is not None]
+        favorites_count_map = await repo.get_favorites_count(article_ids)
+        favorited_map = await _build_favorited_map(uow.session, follower_id, article_ids)
+
+        articles_list = _build_articles_list(
+            list(articles), authors, following_map, favorited_map, favorites_count_map, follower_id
+        )
+
+        return {"articles": articles_list, "articlesCount": total}
