@@ -14,6 +14,16 @@ class ArticleCreateRequest(BaseModel):
     article: ArticleCreate
 
 
+class ArticleUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    body: Optional[str] = None
+
+
+class ArticleUpdateRequest(BaseModel):
+    article: ArticleUpdate
+
+
 class ArticleAuthorOut(BaseModel):
     username: str
     bio: str

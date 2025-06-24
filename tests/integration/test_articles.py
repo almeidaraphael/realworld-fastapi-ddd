@@ -389,3 +389,270 @@ async def test_get_article_by_slug_with_authenticated_user(
     # Since reader is not following author and hasn't favorited, these should be False
     assert article_data["favorited"] is False
     assert article_data["author"]["following"] is False
+
+
+@pytest.mark.asyncio
+async def test_update_article_success(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN a logged-in user who created an article
+    WHEN updating the article with valid data
+    THEN the API returns 200 and the updated article with new slug if title changed
+    """
+    user = user_factory.build()
+    username = user.username
+    email = user.email
+
+    await register_user_fixture(async_client, username, email, test_password)
+    login_resp = await login_user_fixture(async_client, email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    # Create an article
+    article = article_factory.build(
+        title="Original Title",
+        description="Original Description",
+        body="Original Body",
+        tagList=["test"],
+    )
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    created_article = create_resp.json()["article"]
+    original_slug = created_article["slug"]
+
+    # Update the article
+    update_payload = {
+        "article": {
+            "title": "Updated Title",
+            "description": "Updated Description",
+            "body": "Updated Body",
+        }
+    }
+
+    update_resp = await async_client.put(
+        f"/articles/{original_slug}",
+        headers={"Authorization": f"Token {token}"},
+        json=update_payload,
+    )
+    assert update_resp.status_code == 200
+    updated_data = update_resp.json()
+
+    assert "article" in updated_data
+    updated_article = updated_data["article"]
+    assert updated_article["title"] == "Updated Title"
+    assert updated_article["description"] == "Updated Description"
+    assert updated_article["body"] == "Updated Body"
+    assert updated_article["author"]["username"] == username
+    # Slug should change when title changes
+    assert updated_article["slug"] != original_slug
+    assert "updated-title" in updated_article["slug"]
+
+
+@pytest.mark.asyncio
+async def test_update_article_not_found(
+    async_client,
+    user_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN a logged-in user
+    WHEN trying to update a non-existent article
+    THEN the API returns 404
+    """
+    user = user_factory.build()
+    username = user.username
+    email = user.email
+
+    await register_user_fixture(async_client, username, email, test_password)
+    login_resp = await login_user_fixture(async_client, email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    payload = {"article": {"title": "Updated Title"}}
+
+    resp = await async_client.put(
+        "/articles/non-existent-slug",
+        headers={"Authorization": f"Token {token}"},
+        json=payload,
+    )
+    assert resp.status_code == 404
+    assert "not found" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_article_unauthorized(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN two users, where one creates an article
+    WHEN the other user tries to update the article
+    THEN the API returns 403
+    """
+    # Create first user and article
+    user1 = user_factory.build()
+    await register_user_fixture(async_client, user1.username, user1.email, test_password)
+    login_resp1 = await login_user_fixture(async_client, user1.email, test_password)
+    token1 = login_resp1.json()["user"]["token"]
+
+    article = article_factory.build(title="Original Title")
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token1}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    slug = create_resp.json()["article"]["slug"]
+
+    # Create second user
+    user2 = user_factory.build()
+    await register_user_fixture(async_client, user2.username, user2.email, test_password)
+    login_resp2 = await login_user_fixture(async_client, user2.email, test_password)
+    token2 = login_resp2.json()["user"]["token"]
+
+    # Try to update with second user
+    update_payload = {"article": {"title": "Unauthorized Update"}}
+
+    resp = await async_client.put(
+        f"/articles/{slug}",
+        headers={"Authorization": f"Token {token2}"},
+        json=update_payload,
+    )
+    assert resp.status_code == 403
+    assert "not authorized" in resp.json()["detail"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_article_partial_update(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN a logged-in user with an existing article
+    WHEN updating only one field (partial update)
+    THEN the API returns 200 and only that field is updated
+    """
+    user = user_factory.build()
+    username = user.username
+    email = user.email
+
+    await register_user_fixture(async_client, username, email, test_password)
+    login_resp = await login_user_fixture(async_client, email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    # Create article
+    article = article_factory.build(
+        title="Original Title", description="Original Description", body="Original Body"
+    )
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    slug = create_resp.json()["article"]["slug"]
+    original_created_at = create_resp.json()["article"]["createdAt"]
+
+    # Update only the description
+    update_payload = {"article": {"description": "Updated Description Only"}}
+
+    update_resp = await async_client.put(
+        f"/articles/{slug}",
+        headers={"Authorization": f"Token {token}"},
+        json=update_payload,
+    )
+    assert update_resp.status_code == 200
+
+    updated_data = update_resp.json()
+    assert updated_data["article"]["title"] == "Original Title"  # unchanged
+    assert updated_data["article"]["description"] == "Updated Description Only"  # changed
+    assert updated_data["article"]["body"] == "Original Body"  # unchanged
+    assert updated_data["article"]["author"]["username"] == username
+    assert updated_data["article"]["createdAt"] == original_created_at  # unchanged
+    # updatedAt should be different
+    assert updated_data["article"]["updatedAt"] != original_created_at
+
+
+@pytest.mark.asyncio
+async def test_update_article_title_changes_slug(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN a logged-in user with an existing article
+    WHEN updating the title
+    THEN the API returns 200 and the slug is updated to match the new title
+    """
+    user = user_factory.build()
+    username = user.username
+    email = user.email
+
+    await register_user_fixture(async_client, username, email, test_password)
+    login_resp = await login_user_fixture(async_client, email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    # Create article
+    article = article_factory.build(title="Original Title")
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    original_slug = create_resp.json()["article"]["slug"]
+
+    # Update the title
+    new_title = "Completely New Title"
+    update_payload = {"article": {"title": new_title}}
+
+    update_resp = await async_client.put(
+        f"/articles/{original_slug}",
+        headers={"Authorization": f"Token {token}"},
+        json=update_payload,
+    )
+    assert update_resp.status_code == 200
+
+    updated_data = update_resp.json()
+    assert updated_data["article"]["title"] == new_title
+    new_slug = updated_data["article"]["slug"]
+    assert new_slug != original_slug
+    assert "completely-new-title" in new_slug  # slug should be based on new title
+
+    # Verify the article can be fetched with the new slug
+    get_resp = await async_client.get(f"/articles/{new_slug}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["article"]["title"] == new_title
+
+    # Verify the old slug no longer works
+    old_get_resp = await async_client.get(f"/articles/{original_slug}")
+    assert old_get_resp.status_code == 404

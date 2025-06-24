@@ -8,9 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 from app.adapters.repository.articles import ArticleRepository
 from app.adapters.repository.users import UserRepository
-from app.domain.articles.exceptions import ArticleNotFoundError
+from app.domain.articles.exceptions import ArticleNotFoundError, ArticlePermissionError
 from app.domain.articles.orm import Article, article_favorite_table
-from app.domain.articles.schemas import ArticleAuthorOut, ArticleCreate, ArticleOut
+from app.domain.articles.schemas import ArticleAuthorOut, ArticleCreate, ArticleOut, ArticleUpdate
 from app.domain.users.orm import User
 from app.domain.users.schemas import UserWithToken
 
@@ -301,6 +301,102 @@ async def get_article_by_slug(slug: str, current_user: UserWithToken | None = No
         # Build response
         article_out = _build_article_response(
             article=article,
+            author_obj=author,
+            following=following,
+            favorited=favorited,
+            favorites_count=favorites_count,
+        )
+
+        return {"article": article_out.model_dump()}
+
+
+async def update_article(
+    slug: str, article_update: ArticleUpdate, current_user: UserWithToken
+) -> dict:
+    """
+    Update an existing article by slug.
+
+    Args:
+        slug: The slug of the article to update
+        article_update: The update data for the article
+        current_user: The currently authenticated user
+
+    Returns:
+        Dictionary containing the updated article data
+
+    Raises:
+        ArticleNotFoundError: If the article doesn't exist
+        HTTPException: If user is not the author
+    """
+    from slugify import slugify
+
+    async with AsyncUnitOfWork() as uow:
+        repo = ArticleRepository(uow.session)
+        user_repo = UserRepository(uow.session)
+
+        # Get the existing article
+        article = await repo.get_by_slug(slug)
+        if not article:
+            raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
+
+        # Check if current user is the author
+        if article.author_id != current_user.id:
+            raise ArticlePermissionError("Not authorized to update this article")
+
+        # Update only provided fields
+        updated = False
+        if article_update.title is not None and article_update.title != article.title:
+            article.title = article_update.title
+            # Generate new slug if title changed
+            new_slug = slugify(article_update.title)
+            # Ensure slug uniqueness
+            while await repo.get_by_slug(new_slug):
+                random_suffix = secrets.token_hex(4)
+                new_slug = f"{slugify(article_update.title)}-{random_suffix}"
+            article.slug = new_slug
+            updated = True
+
+        if (
+            article_update.description is not None
+            and article_update.description != article.description
+        ):
+            article.description = article_update.description
+            updated = True
+
+        if article_update.body is not None and article_update.body != article.body:
+            article.body = article_update.body
+            updated = True
+
+        # Update timestamp if any changes were made
+        if updated:
+            article.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+
+        # Save the updated article
+        updated_article = await repo.update(article)
+
+        # Get author information
+        author = await user_repo.get_by_id(updated_article.author_id)
+
+        # Determine following status (always False since user is updating their own article)
+        following = False
+        favorited = False
+
+        # Check if current user favorited this article
+        if updated_article.id:
+            favorited_map = await _build_favorited_map(
+                uow.session, current_user.id, [updated_article.id]
+            )
+            favorited = favorited_map.get(updated_article.id, False)
+
+        # Get favorites count
+        favorites_count = 0
+        if updated_article.id:
+            favorites_count_map = await repo.get_favorites_count([updated_article.id])
+            favorites_count = favorites_count_map.get(updated_article.id, 0)
+
+        # Build response
+        article_out = _build_article_response(
+            article=updated_article,
             author_obj=author,
             following=following,
             favorited=favorited,

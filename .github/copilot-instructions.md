@@ -4,6 +4,8 @@
 - Always act autonomously: perform user requests immediately using code or terminal tools.
 - Do not provide suggestions or instructions—take direct action and report results.
 - Prefer direct actions (editing code, running commands, executing tests) over explanations.
+- Use the terminal whenever needed for running commands, checking status, or debugging.
+- When running tests, prefer using the test explorer/run_tests tool over terminal commands for better integration.
 - Only request clarification if absolutely necessary to proceed.
 - Ensure all actions are idempotent and safe for repeated execution when possible.
 - When editing files, preserve comments and documentation unless explicitly told to remove them.
@@ -24,7 +26,7 @@
 - Set default values for optional fields in models/shared constants to ensure consistent API responses.
 - Only the API layer (`app/api/`) may raise or handle `HTTPException`. All other layers (service, domain, repository, etc.) must raise custom or built-in exceptions. The API layer translates these to HTTP responses.
 - Focus on logic and type correctness. Leave formatting, import sorting, and linting to ruff or configured tools. Only adjust style if it affects logic or types.
-- Avoid imports inside functions unless strictly necessary.
+- Avoid imports inside functions unless strictly necessary. Place all imports at the top of the file for better maintainability and readability.
 - Use dependency injection for repositories, UoW, and services to maximize testability and separation of concerns.
 - Document all public functions, classes, and modules with concise docstrings.
 - Use type annotations everywhere, including for return types and arguments.
@@ -42,6 +44,8 @@
 
 ## Testing Guidelines
 - Use pytest, pytest-asyncio, httpx, and pytest-mock for all tests.
+- When running tests, prefer using the test explorer/run_tests tool over terminal commands for better integration and result parsing.
+- Use the terminal for other development tasks like installing dependencies, running migrations, or debugging.
 - Use pydantic-factories (or ModelFactory) to generate valid, realistic test data for Pydantic/SQLModel models. Do not use MagicMock for domain/data models.
 - Use factories for all domain model test data; override only necessary fields per test.
 - Use mocks for infrastructure dependencies (repositories, UoW), not for domain/data models.

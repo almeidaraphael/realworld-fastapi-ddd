@@ -28,6 +28,12 @@ class ArticleRepository:
         result = await self.session.execute(select(Article).where(article_table.c.slug == slug))
         return result.scalars().first()
 
+    async def update(self, article: Article) -> Article:
+        """Update an existing article in the database."""
+        await self.session.commit()
+        await self.session.refresh(article)
+        return article
+
     async def list_articles(
         self,
         *,
