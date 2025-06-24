@@ -1,6 +1,6 @@
 from collections.abc import AsyncGenerator, Callable
 
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.orm.engine import get_async_engine
 

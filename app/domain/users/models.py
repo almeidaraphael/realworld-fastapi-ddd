@@ -1,20 +1,38 @@
+"""
+Domain model for User and Follower entities.
+
+This module contains pure domain models without any infrastructure dependencies.
+These models represent the core business entities for user management and following relationships.
+"""
+
+from dataclasses import dataclass
 from typing import Optional
 
-from sqlmodel import Field, SQLModel
 
-from app.shared import USER_DEFAULT_BIO, USER_DEFAULT_IMAGE
+@dataclass
+class User:
+    """
+    Domain model representing a user in the system.
 
+    This is a pure domain model that contains no infrastructure dependencies.
+    It represents the essential attributes and behavior of a user.
+    """
 
-class UserBase(SQLModel):
-    username: str = Field(index=True)
-    email: str = Field(index=True)
-    bio: Optional[str] = Field(default=USER_DEFAULT_BIO)
-    image: Optional[str] = Field(default=USER_DEFAULT_IMAGE)
-
-
-class User(UserBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    username: str = Field(index=True, unique=True)
-    email: str = Field(index=True, unique=True)
+    username: str
+    email: str
     hashed_password: str
-    # bio and image inherited
+    bio: Optional[str] = ""
+    image: Optional[str] = ""
+    id: Optional[int] = None
+
+
+@dataclass
+class Follower:
+    """
+    Domain model representing a follower relationship.
+
+    Represents the many-to-many relationship between users for following.
+    """
+
+    follower_id: int
+    followee_id: int

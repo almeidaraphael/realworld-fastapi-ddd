@@ -2,38 +2,48 @@ services:
   db:
     image: postgres:15
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_USER: rw-demo
+      POSTGRES_PASSWORD: rw-demo
+      POSTGRES_DB: rw-demo-db
+      POSTGRES_PORT: 5432
     ports:
-      - "${POSTGRES_PORT}:5432"
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB} -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U rw-demo -d rw-demo-db -p 5432"]
       interval: 10s
       timeout: 5s
       retries: 5
+    labels:
+      - "app.environment=development"
+      - "app.service=database"
 
   db_test:
     image: postgres:15
     restart: unless-stopped
+    env_file:
+      - .env.test
     environment:
-      POSTGRES_USER: ${TEST_POSTGRES_USER}
-      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD}
-      POSTGRES_DB: ${TEST_POSTGRES_DB}
-      POSTGRES_PORT: ${TEST_POSTGRES_PORT}
+      POSTGRES_USER: rw-demo-test
+      POSTGRES_PASSWORD: rw-demo-test
+      POSTGRES_DB: rw-demo-test-db
+      POSTGRES_PORT: 5433
     ports:
-      - "${TEST_POSTGRES_PORT}:5432"
+      - "5433:5432"
     volumes:
       - postgres_data_test:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${TEST_POSTGRES_USER} -d ${TEST_POSTGRES_DB} -p 5432"]
+      test: ["CMD-SHELL", "pg_isready -U rw-demo-test -d rw-demo-test-db -p 5432"]
       interval: 10s
       timeout: 5s
       retries: 5
+    labels:
+      - "app.environment=testing"
+      - "app.service=database"
 
 volumes:
   postgres_data:

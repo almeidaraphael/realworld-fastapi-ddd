@@ -1,7 +1,7 @@
 from contextlib import AbstractAsyncContextManager
 from typing import Any
 
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.orm.engine import get_async_engine
 

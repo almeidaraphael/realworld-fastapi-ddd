@@ -1,5 +1,4 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 
 from app.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
 from app.domain.users.schemas import (
@@ -32,7 +31,17 @@ user_body = Body(
     },  # type: ignore[arg-type]
 )
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/users/login")
+
+def get_token_from_header(request: Request) -> str:
+    """
+    Extracts the JWT token from the Authorization header using
+    the 'Token' scheme only (RealWorld spec).
+    Raises HTTPException(401) if missing or invalid.
+    """
+    auth: str | None = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Token "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    return auth.removeprefix("Token ").strip()
 
 
 @router.post(
@@ -94,7 +103,7 @@ async def login_user(user: UserLoginRequest) -> UserResponse:
     return UserResponse(user=user_with_token)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserWithToken:
+async def get_current_user(token: str = Depends(get_token_from_header)) -> UserWithToken:
     """
     Retrieve the current authenticated user from the JWT token.
 

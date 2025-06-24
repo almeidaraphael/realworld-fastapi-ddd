@@ -1,11 +1,9 @@
 import logging
 
-from sqlmodel import select
-from sqlmodel.ext.asyncio.session import AsyncSession
+from sqlalchemy import and_, or_, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.adapters.repository.followers import FollowerRepository
-from app.domain.users.followers import Follower
-from app.domain.users.models import User
+from app.domain.users.orm import Follower, User, follower_table, user_table
 
 
 class UserRepository:
@@ -13,9 +11,11 @@ class UserRepository:
         self.session = session
 
     async def get_by_username_or_email(self, username: str, email: str) -> User | None:
-        statement = select(User).where((User.username == username) | (User.email == email))
-        result = await self.session.exec(statement)
-        user = result.first()
+        statement = select(User).where(
+            or_(user_table.c.username == username, user_table.c.email == email)
+        )
+        result = await self.session.execute(statement)
+        user = result.scalars().first()
         logging.debug(
             "[get_by_username_or_email] username=%s, email=%s, found=%s", username, email, user
         )
@@ -28,17 +28,39 @@ class UserRepository:
         return user
 
     async def follow_user(self, follower_id: int, followee_id: int) -> None:
-        follower_repo = FollowerRepository(self.session)
-        await follower_repo.add(follower_id, followee_id)
-
-    async def unfollow_user(self, follower_id: int, followee_id: int) -> None:
-        follower_repo = FollowerRepository(self.session)
-        await follower_repo.remove(follower_id, followee_id)
-
-    async def is_following(self, follower_id: int, followee_id: int) -> bool:
-        exists = await self.session.exec(
-            select(Follower.follower_id).where(
-                (Follower.follower_id == follower_id) & (Follower.followee_id == followee_id)
+        exists = await self.session.execute(
+            select(Follower).where(
+                and_(
+                    follower_table.c.follower_id == follower_id,
+                    follower_table.c.followee_id == followee_id,
+                )
             )
         )
-        return exists.first() is not None
+        if exists.scalars().first() is None:
+            self.session.add(Follower(follower_id=follower_id, followee_id=followee_id))
+            await self.session.commit()
+
+    async def unfollow_user(self, follower_id: int, followee_id: int) -> None:
+        result = await self.session.execute(
+            select(Follower).where(
+                and_(
+                    follower_table.c.follower_id == follower_id,
+                    follower_table.c.followee_id == followee_id,
+                )
+            )
+        )
+        instance = result.scalars().first()
+        if instance is not None:
+            await self.session.delete(instance)
+            await self.session.commit()
+
+    async def is_following(self, follower_id: int, followee_id: int) -> bool:
+        exists = await self.session.execute(
+            select(follower_table.c.follower_id).where(
+                and_(
+                    follower_table.c.follower_id == follower_id,
+                    follower_table.c.followee_id == followee_id,
+                )
+            )
+        )
+        return exists.scalars().first() is not None

@@ -1,3 +1,4 @@
+import uuid
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -49,10 +50,11 @@ async def test_get_profile_success(async_client, override_auth, fake_user):
 
 @pytest.mark.asyncio
 async def test_unfollow_profile_success(async_client, override_auth, fake_user, async_session):
-    # Ensure the user exists in the DB
+    # Ensure the user exists in the DB with a unique email to avoid conflicts
+    test_id = str(uuid.uuid4())[:8]
     user = User(
-        username=fake_user.username,
-        email=fake_user.email,
+        username=f"{fake_user.username}_{test_id}",
+        email=f"{fake_user.username}_{test_id}@email.com",
         bio=fake_user.bio,
         image=fake_user.image,
         hashed_password="notused",

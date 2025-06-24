@@ -11,12 +11,12 @@
 ## Project Summary
 - FastAPI project using Domain-Driven Design (DDD)
 - Implements the RealWorld API specification (https://realworld-docs.netlify.app/docs/specs/backend-specs/endpoints/)
-- Tech stack: SQLModel (for ORM/database models), Pydantic (for API schemas), PostgreSQL, Alembic, asyncpg, Poetry
+- Tech stack: SQLAlchemy (for ORM/database models), Pydantic (for API schemas), PostgreSQL, Alembic, asyncpg, Poetry
 - Docker is used only for database containers; the app runs with uvicorn and poetry directly
 - The project is structured by domain (users, articles, profiles, etc.), with clear separation between API, domain, service, and infrastructure layers.
 
 ## Core Coding Practices
-- Use SQLModel exclusively for ORM/database models (in `models.py`).
+- Use SQLAlchemy exclusively for ORM/database models (in `models.py`).
 - Use Pydantic's BaseModel for all API schemas (in `schemas.py`).
 - Never mix ORM models and API schemas in the same file.
 - Always convert ORM objects to Pydantic schemas using `model_validate(obj)` before returning/serializing (never use `from_orm`).

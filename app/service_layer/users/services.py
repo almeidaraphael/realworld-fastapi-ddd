@@ -1,5 +1,3 @@
-import logging
-
 from passlib.context import CryptContext
 
 from app.adapters.orm.unit_of_work import AsyncUnitOfWork
@@ -36,16 +34,9 @@ async def create_user(user_req: NewUserRequest) -> UserRead:
             hashed_password=hashed_password,
         )
         await repo.add(user)
-        # Force flush and print user state after commit
         await uow.session.commit()
-        logging.debug(
-            "[create_user] User committed: username=%s, email=%s, id=%s",
-            user.username,
-            user.email,
-            user.id,
-        )
-        user_schema = UserRead.model_validate(user.model_dump())
-        return user_schema
+        await uow.session.refresh(user)
+        return UserRead.model_validate(user.__dict__)
 
 
 async def authenticate_user(user_req: UserLoginRequest) -> UserRead | None:
@@ -56,7 +47,7 @@ async def authenticate_user(user_req: UserLoginRequest) -> UserRead | None:
             return None
         if not pwd_context.verify(user_req.user.password, user.hashed_password):
             return None
-        return UserRead.model_validate(user.model_dump())
+        return UserRead.model_validate(user.__dict__)
 
 
 async def get_user_by_email(email: str) -> UserRead | None:
@@ -65,7 +56,7 @@ async def get_user_by_email(email: str) -> UserRead | None:
         user = await repo.get_by_username_or_email("", email)
         if not user:
             return None
-        return UserRead.model_validate(user.model_dump())
+        return UserRead.model_validate(user.__dict__)
 
 
 async def update_user(email: str, user_update_req: UserUpdateRequest) -> UserRead:
@@ -81,4 +72,4 @@ async def update_user(email: str, user_update_req: UserUpdateRequest) -> UserRea
             setattr(user, key, value)
         await uow.session.commit()
         await uow.session.refresh(user)
-        return UserRead.model_validate(user.model_dump())
+        return UserRead.model_validate(user.__dict__)

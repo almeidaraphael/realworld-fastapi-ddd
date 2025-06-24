@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 
 async def get_profile_by_username(username: str, current_user: str | None = None) -> ProfileRead:
     async with AsyncUnitOfWork() as uow:
-        logger.info(f"[DEBUG] get_profile_by_username: Using session {uow.session}")
         repo = UserRepository(uow.session)
         user = await repo.get_by_username_or_email(username, "")
         if not user:
@@ -37,7 +36,6 @@ async def get_profile_by_username(username: str, current_user: str | None = None
 
 async def follow_user(username: str, follower_username: str) -> ProfileRead:
     async with AsyncUnitOfWork() as uow:
-        logger.info(f"[DEBUG] follow_user: Using session {uow.session}")
         repo = UserRepository(uow.session)
         user = await repo.get_by_username_or_email(username, "")
         follower = await repo.get_by_username_or_email(follower_username, "")
@@ -58,7 +56,6 @@ async def follow_user(username: str, follower_username: str) -> ProfileRead:
 
 async def unfollow_user(username: str, follower_username: str) -> ProfileRead:
     async with AsyncUnitOfWork() as uow:
-        logger.info(f"[DEBUG] unfollow_user: Using session {uow.session}")
         repo = UserRepository(uow.session)
         user = await repo.get_by_username_or_email(username, "")
         follower = await repo.get_by_username_or_email(follower_username, "")
