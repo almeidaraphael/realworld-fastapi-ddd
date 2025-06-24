@@ -1,6 +1,25 @@
 # Commit Message Guidelines
 
+> 📖 **[← Back to README](README.md)** | **[📋 Documentation Index](README.md#-documentation-index)**
+
 This document outlines the commit message conventions for the FastAPI RealWorld Demo project.
+
+> **💡 Note**: This document provides detailed commit guidelines. For a complete development workflow including setup, testing, and deployment, see the [Development Workflow](README.md#development-workflow) section in README.md.
+
+## Table of Contents
+
+- [Format](#format)
+- [Type](#type)
+- [Scope](#scope)
+- [Subject](#subject)
+- [Body](#body)
+- [Footer](#footer)
+- [Examples](#examples)
+- [Tips for Better Commits](#tips-for-better-commits)
+- [Setting up the commit template](#setting-up-the-commit-template)
+- [Tools and Automation](#tools-and-automation)
+- [Bad vs Good Examples](#bad-vs-good-examples)
+- [RealWorld Project Specific Guidelines](#realworld-project-specific-guidelines)
 
 ## Format
 
@@ -209,3 +228,13 @@ information in response.
 
 Refs: https://realworld-docs.netlify.app/docs/specs/backend-specs/endpoints/
 ```
+
+## Related Documentation
+
+- **[README.md](README.md)** - Main project documentation and setup guide
+- **[EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md)** - Exception handling architecture and best practices
+- **[Development Workflow](README.md#development-workflow)** - Complete development workflow in README.md
+
+---
+
+> 📖 **[← Back to README](README.md)** | **[📋 Documentation Index](README.md#-documentation-index)**
