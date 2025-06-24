@@ -13,6 +13,14 @@ from app.domain.articles.orm import Article, article_favorite_table
 from app.domain.articles.schemas import ArticleAuthorOut, ArticleCreate, ArticleOut, ArticleUpdate
 from app.domain.users.orm import User
 from app.domain.users.schemas import UserWithToken
+from app.events import (
+    ArticleCreated,
+    ArticleDeleted,
+    ArticleFavorited,
+    ArticleUnfavorited,
+    ArticleUpdated,
+    shared_event_bus,
+)
 
 
 def _build_article_response(
@@ -191,7 +199,7 @@ async def list_articles(
 
 
 async def create_article(article: "ArticleCreate", user: UserWithToken) -> dict:
-    """Create a new article using SQLAlchemy models."""
+    """Create a new article using SQLAlchemy models and publish an event."""
     async with AsyncUnitOfWork() as uow:
         repo = ArticleRepository(uow.session)
         now = datetime.now(timezone.utc).replace(tzinfo=None)  # ensure naive UTC
@@ -212,6 +220,9 @@ async def create_article(article: "ArticleCreate", user: UserWithToken) -> dict:
         db_article.created_at = now
         db_article.updated_at = now
         created = await repo.add(db_article)
+        # Publish event
+        if created.id is not None:
+            shared_event_bus.publish(ArticleCreated(article_id=created.id, author_id=user.id))
         # Always not favorited and 0 count on creation
         # Fetch author as SQLAlchemy User
         author_obj = await uow.session.get(User, user.id)
@@ -314,7 +325,7 @@ async def update_article(
     slug: str, article_update: ArticleUpdate, current_user: UserWithToken
 ) -> dict:
     """
-    Update an existing article by slug.
+    Update an existing article by slug and publish an event.
 
     Args:
         slug: The slug of the article to update
@@ -345,8 +356,11 @@ async def update_article(
 
         # Update only provided fields
         updated = False
+        updated_fields = []
+
         if article_update.title is not None and article_update.title != article.title:
             article.title = article_update.title
+            updated_fields.append("title")
             # Generate new slug if title changed
             new_slug = slugify(article_update.title)
             # Ensure slug uniqueness
@@ -354,6 +368,7 @@ async def update_article(
                 random_suffix = secrets.token_hex(4)
                 new_slug = f"{slugify(article_update.title)}-{random_suffix}"
             article.slug = new_slug
+            updated_fields.append("slug")
             updated = True
 
         if (
@@ -361,10 +376,12 @@ async def update_article(
             and article_update.description != article.description
         ):
             article.description = article_update.description
+            updated_fields.append("description")
             updated = True
 
         if article_update.body is not None and article_update.body != article.body:
             article.body = article_update.body
+            updated_fields.append("body")
             updated = True
 
         # Update timestamp if any changes were made
@@ -373,6 +390,16 @@ async def update_article(
 
         # Save the updated article
         updated_article = await repo.update(article)
+
+        # Publish article update event
+        if updated and updated_article.id is not None:
+            shared_event_bus.publish(
+                ArticleUpdated(
+                    article_id=updated_article.id,
+                    author_id=current_user.id,
+                    updated_fields=updated_fields,
+                )
+            )
 
         # Get author information
         author = await user_repo.get_by_id(updated_article.author_id)
@@ -408,7 +435,7 @@ async def update_article(
 
 async def delete_article(slug: str, current_user: UserWithToken) -> None:
     """
-    Delete an article by slug.
+    Delete an article by slug and publish an event.
 
     Only the author of the article can delete it.
 
@@ -422,23 +449,25 @@ async def delete_article(slug: str, current_user: UserWithToken) -> None:
     """
     async with AsyncUnitOfWork() as uow:
         repo = ArticleRepository(uow.session)
-
         # Find the article
         article = await repo.get_by_slug(slug)
         if not article:
             raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
-
         # Check permission - only author can delete
         if article.author_id != current_user.id:
             raise ArticlePermissionError("Only the author can delete this article")
-
         # Delete the article
         await repo.delete(article)
+        # Publish event
+        if article.id is not None:
+            shared_event_bus.publish(
+                ArticleDeleted(article_id=article.id, author_id=current_user.id)
+            )
 
 
 async def favorite_article(slug: str, current_user: UserWithToken) -> dict:
     """
-    Add an article to user's favorites.
+    Add an article to user's favorites and publish an event.
 
     Args:
         slug: The slug of the article to favorite
@@ -453,16 +482,16 @@ async def favorite_article(slug: str, current_user: UserWithToken) -> dict:
     async with AsyncUnitOfWork() as uow:
         repo = ArticleRepository(uow.session)
         user_repo = UserRepository(uow.session)
-
         # Find the article
         article = await repo.get_by_slug(slug)
         if not article:
             raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
-
         # Add to favorites
         if article.id is not None:
             await repo.add_favorite(article.id, current_user.id)
-
+            shared_event_bus.publish(
+                ArticleFavorited(article_id=article.id, user_id=current_user.id)
+            )
         # Get updated article data with author info
         author = None
         if article.author_id:
@@ -493,7 +522,7 @@ async def favorite_article(slug: str, current_user: UserWithToken) -> dict:
 
 async def unfavorite_article(slug: str, current_user: UserWithToken) -> dict:
     """
-    Remove an article from user's favorites.
+    Remove an article from user's favorites and publish an event.
 
     Args:
         slug: The slug of the article to unfavorite
@@ -508,16 +537,16 @@ async def unfavorite_article(slug: str, current_user: UserWithToken) -> dict:
     async with AsyncUnitOfWork() as uow:
         repo = ArticleRepository(uow.session)
         user_repo = UserRepository(uow.session)
-
         # Find the article
         article = await repo.get_by_slug(slug)
         if not article:
             raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
-
         # Remove from favorites
         if article.id is not None:
             await repo.remove_favorite(article.id, current_user.id)
-
+            shared_event_bus.publish(
+                ArticleUnfavorited(article_id=article.id, user_id=current_user.id)
+            )
         # Get updated article data with author info
         author = None
         if article.author_id:

@@ -19,6 +19,10 @@ app/
   api/            # FastAPI routers (per domain)
   config/         # App settings (Pydantic Settings)
   domain/         # Domain models, schemas, exceptions (per domain)
+  events/         # Event-driven architecture (domain & system events)
+    domain/       # Business domain events (articles, users, comments, tags)
+    system/       # Cross-cutting events (analytics, security, moderation)
+    infrastructure/ # Event bus implementations and testing utilities
   service_layer/  # Application services (per domain)
   shared/         # Shared utilities (JWT, pagination, etc.)
   main.py         # FastAPI app entrypoint
@@ -236,3 +240,111 @@ Closes #42
 ## Reference
 - [RealWorld API Spec](https://realworld-docs.netlify.app/docs/specs/backend-specs/endpoints/)
 - See `.github/copilot-instructions.md` for contributor and code generation guidelines.
+
+## Event-Driven Architecture
+
+The project implements a comprehensive event-driven architecture for loose coupling and extensibility.
+
+### Event System Overview
+
+- **Event Bus**: Type-safe publish-subscribe system with sync/async support
+- **Error Isolation**: Handler failures don't affect other handlers or main flow
+- **Event Persistence**: Optional event logging for audit trails and debugging
+- **Testing Support**: Specialized event bus for testing scenarios
+
+### Event Organization
+
+```
+app/events/
+├── core.py                    # Base classes (DomainEvent, EventBus)
+├── domain/                    # Business domain events
+│   ├── articles.py           # Article lifecycle events
+│   ├── comments.py           # Comment-related events
+│   ├── users.py              # User registration, login, profile events
+│   └── tags.py               # Tag creation and usage events
+├── system/                    # Cross-cutting system events
+│   ├── analytics.py          # Performance and usage analytics
+│   ├── security.py           # Authentication and security events
+│   ├── moderation.py         # Content moderation events
+│   └── maintenance.py        # System maintenance and cleanup
+└── infrastructure/           # Event bus implementations
+    ├── persistent_bus.py     # Event persistence for audit trails
+    └── test_bus.py          # Testing utilities
+```
+
+### Usage Examples
+
+#### Publishing Events
+```python
+from app.events import shared_event_bus, ArticleCreated, UserRegistered
+
+# Publish domain events
+shared_event_bus.publish(ArticleCreated(article_id=123, author_id=456))
+shared_event_bus.publish(UserRegistered(
+    user_id=789, 
+    username="johndoe", 
+    email="john@example.com"
+))
+
+# Async publishing
+await shared_event_bus.publish_async(ArticleViewIncremented(
+    article_id=123, 
+    viewer_id=456
+))
+```
+
+#### Creating Event Handlers
+```python
+from app.events import shared_event_bus, ArticleCreated
+
+def handle_article_created(event: ArticleCreated) -> None:
+    """Send notifications when articles are created."""
+    # Notify followers, update search index, etc.
+    logger.info(f"Article {event.article_id} created by {event.author_id}")
+
+# Register handler
+shared_event_bus.subscribe(ArticleCreated, handle_article_created)
+```
+
+#### Available Events
+
+**Domain Events:**
+- Articles: `ArticleCreated`, `ArticleUpdated`, `ArticleDeleted`, `ArticleFavorited`, `ArticleUnfavorited`
+- Comments: `ArticleCommentAdded`, `CommentDeleted`
+- Users: `UserRegistered`, `UserLoggedIn`, `UserProfileUpdated`, `UserFollowed`, `UserUnfollowed`
+- Tags: `TagCreated`, `TagUsed`, `TagRemoved`, `PopularTagDetected`
+
+**System Events:**
+- Analytics: `ArticleViewIncremented`, `SearchPerformed`, `SlowQueryDetected`, `HighTrafficDetected`
+- Security: `UserLoginAttempted`, `UserPasswordChanged`, `UserAccountLocked`, `SuspiciousLoginActivity`
+- Moderation: `ContentFlagged`, `ContentApproved`, `ContentRemoved`, `SpamDetected`
+- Maintenance: `UserDataCleanupRequested`, `OrphanedDataDetected`, `BulkOperationCompleted`
+
+### Event Testing
+
+```python
+from tests.test_event_bus import MockEventBus
+from app.events.domain import UserRegistered
+
+def test_user_registration():
+    test_bus = MockEventBus()
+    
+    # Your code that should publish events
+    register_user(user_data)
+    
+    # Verify events were published
+    assert test_bus.call_count == 1
+    assert test_bus.assert_event_published(
+        UserRegistered, 
+        user_id=123, 
+        email="test@example.com"
+    )
+```
+
+## Architecture Principles
+
+- **Domain-Driven Design**: Clear separation between domains (users, articles, etc.)
+- **Event-Driven**: Loose coupling through domain events
+- **Layered Architecture**: API → Service → Domain → Infrastructure
+- **Type Safety**: Full type annotations and mypy validation
+- **Testing**: Comprehensive test coverage with realistic test data

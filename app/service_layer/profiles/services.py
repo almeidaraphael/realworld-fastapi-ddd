@@ -10,6 +10,7 @@ from app.domain.profiles.exceptions import (
     UserOrFollowerIdMissingError,
 )
 from app.domain.profiles.schemas import ProfileRead
+from app.events import UserFollowed, UserUnfollowed, shared_event_bus
 from app.shared import USER_DEFAULT_BIO, USER_DEFAULT_IMAGE
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ async def get_profile_by_username(username: str, current_user: str | None = None
 
 
 async def follow_user(username: str, follower_username: str) -> ProfileRead:
-    """Follow a user."""
+    """Follow a user and publish an event."""
     async with AsyncUnitOfWork() as uow:
         user_repo = UserRepository(uow.session)
 
@@ -55,6 +56,8 @@ async def follow_user(username: str, follower_username: str) -> ProfileRead:
             raise UserOrFollowerIdMissingError("User or follower has no id")
 
         await user_repo.follow_user(follower_id=follower.id, followee_id=user.id)
+        # Publish event
+        shared_event_bus.publish(UserFollowed(follower_id=follower.id, followee_id=user.id))
 
         return ProfileRead(
             username=user.username,
@@ -65,7 +68,7 @@ async def follow_user(username: str, follower_username: str) -> ProfileRead:
 
 
 async def unfollow_user(username: str, follower_username: str) -> ProfileRead:
-    """Unfollow a user."""
+    """Unfollow a user and publish an event."""
     async with AsyncUnitOfWork() as uow:
         user_repo = UserRepository(uow.session)
 
@@ -80,6 +83,8 @@ async def unfollow_user(username: str, follower_username: str) -> ProfileRead:
             raise UserOrFollowerIdMissingError("User or follower has no id")
 
         await user_repo.unfollow_user(follower_id=follower.id, followee_id=user.id)
+        # Publish event
+        shared_event_bus.publish(UserUnfollowed(follower_id=follower.id, followee_id=user.id))
 
         return ProfileRead(
             username=user.username,
