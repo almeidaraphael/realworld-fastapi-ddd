@@ -404,3 +404,33 @@ async def update_article(
         )
 
         return {"article": article_out.model_dump()}
+
+
+async def delete_article(slug: str, current_user: UserWithToken) -> None:
+    """
+    Delete an article by slug.
+
+    Only the author of the article can delete it.
+
+    Args:
+        slug: The slug of the article to delete
+        current_user: The authenticated user
+
+    Raises:
+        ArticleNotFoundError: If the article doesn't exist
+        ArticlePermissionError: If the user is not the author
+    """
+    async with AsyncUnitOfWork() as uow:
+        repo = ArticleRepository(uow.session)
+
+        # Find the article
+        article = await repo.get_by_slug(slug)
+        if not article:
+            raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
+
+        # Check permission - only author can delete
+        if article.author_id != current_user.id:
+            raise ArticlePermissionError("Only the author can delete this article")
+
+        # Delete the article
+        await repo.delete(article)

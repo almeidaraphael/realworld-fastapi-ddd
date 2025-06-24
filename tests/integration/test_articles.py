@@ -656,3 +656,179 @@ async def test_update_article_title_changes_slug(
     # Verify the old slug no longer works
     old_get_resp = await async_client.get(f"/articles/{original_slug}")
     assert old_get_resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_article_success(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN a logged-in user who created an article
+    WHEN deleting the article by slug
+    THEN the API returns 200 and the article is removed from the database
+    """
+    user = user_factory.build()
+    username = user.username
+    email = user.email
+
+    await register_user_fixture(async_client, username, email, test_password)
+    login_resp = await login_user_fixture(async_client, email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    # Create an article
+    article = article_factory.build(
+        title="Article to Delete",
+        description="This article will be deleted",
+        body="Test Body",
+        tagList=["test", "delete"],
+    )
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    created_article = create_resp.json()["article"]
+    slug = created_article["slug"]
+
+    # Verify the article exists
+    get_resp = await async_client.get(f"/articles/{slug}")
+    assert get_resp.status_code == 200
+
+    # Delete the article
+    delete_resp = await async_client.delete(
+        f"/articles/{slug}",
+        headers={"Authorization": f"Token {token}"},
+    )
+    assert delete_resp.status_code == 200
+
+    # Verify the article no longer exists
+    get_after_delete_resp = await async_client.get(f"/articles/{slug}")
+    assert get_after_delete_resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_article_not_found(
+    async_client,
+    user_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN a logged-in user
+    WHEN trying to delete a non-existent article
+    THEN the API returns 404
+    """
+    user = user_factory.build()
+    username = user.username
+    email = user.email
+
+    await register_user_fixture(async_client, username, email, test_password)
+    login_resp = await login_user_fixture(async_client, email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    # Try to delete non-existent article
+    resp = await async_client.delete(
+        "/articles/non-existent-slug",
+        headers={"Authorization": f"Token {token}"},
+    )
+    assert resp.status_code == 404
+    assert "Article with slug 'non-existent-slug' not found" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_delete_article_unauthorized(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN two users, where one creates an article
+    WHEN the other user tries to delete the article
+    THEN the API returns 403
+    """
+    # Create first user and article
+    user1 = user_factory.build()
+    await register_user_fixture(async_client, user1.username, user1.email, test_password)
+    login_resp1 = await login_user_fixture(async_client, user1.email, test_password)
+    token1 = login_resp1.json()["user"]["token"]
+
+    article = article_factory.build(title="Article by User 1")
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token1}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    slug = create_resp.json()["article"]["slug"]
+
+    # Create second user
+    user2 = user_factory.build()
+    await register_user_fixture(async_client, user2.username, user2.email, test_password)
+    login_resp2 = await login_user_fixture(async_client, user2.email, test_password)
+    token2 = login_resp2.json()["user"]["token"]
+
+    # Try to delete with second user
+    resp = await async_client.delete(
+        f"/articles/{slug}",
+        headers={"Authorization": f"Token {token2}"},
+    )
+    assert resp.status_code == 403
+    assert "Only the author can delete this article" in resp.json()["detail"]
+
+    # Verify the article still exists
+    get_resp = await async_client.get(f"/articles/{slug}")
+    assert get_resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_delete_article_requires_authentication(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN an existing article
+    WHEN trying to delete without authentication
+    THEN the API returns 401
+    """
+    # Create user and article
+    user = user_factory.build()
+    await register_user_fixture(async_client, user.username, user.email, test_password)
+    login_resp = await login_user_fixture(async_client, user.email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    article = article_factory.build(title="Article to Delete Without Auth")
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    slug = create_resp.json()["article"]["slug"]
+
+    # Try to delete without authentication
+    resp = await async_client.delete(f"/articles/{slug}")
+    assert resp.status_code == 401
+
+    # Verify the article still exists
+    get_resp = await async_client.get(f"/articles/{slug}")
+    assert get_resp.status_code == 200

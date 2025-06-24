@@ -10,6 +10,7 @@ from app.domain.articles.schemas import (
 from app.domain.users.schemas import UserWithToken
 from app.service_layer.articles.services import (
     create_article,
+    delete_article,
     feed_articles,
     get_article_by_slug,
     list_articles,
@@ -132,3 +133,29 @@ async def update_article_endpoint(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ArticleResponse.model_validate(result)
+
+
+@router.delete(
+    "/{slug}",
+    status_code=status.HTTP_200_OK,
+    summary="Delete an article",
+)
+async def delete_article_endpoint(
+    slug: str,
+    current_user: UserWithToken = Depends(get_current_user),
+) -> None:
+    """
+    Delete an existing article by slug.
+
+    Only the author of the article can delete it.
+    """
+    from app.domain.articles.exceptions import ArticleNotFoundError, ArticlePermissionError
+
+    try:
+        await delete_article(slug, current_user)
+    except ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ArticlePermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

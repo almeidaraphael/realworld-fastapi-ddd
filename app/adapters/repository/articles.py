@@ -162,3 +162,8 @@ class ArticleRepository:
         total = count_result.scalar_one()
 
         return articles, total
+
+    async def delete(self, article: Article) -> None:
+        """Delete an article from the database."""
+        await self.session.delete(article)
+        await self.session.commit()
