@@ -20,9 +20,11 @@ from app.domain.users.schemas import UserWithToken
 from app.service_layer.articles.services import (
     create_article,
     delete_article,
+    favorite_article,
     feed_articles,
     get_article_by_slug,
     list_articles,
+    unfavorite_article,
     update_article,
 )
 from app.service_layer.comments.services import CommentService
@@ -253,3 +255,47 @@ async def delete_comment_endpoint(
         raise HTTPException(status_code=403, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{slug}/favorite",
+    response_model=ArticleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Favorite an article",
+)
+async def favorite_article_endpoint(
+    slug: str,
+    current_user: UserWithToken = Depends(get_current_user),
+) -> ArticleResponse:
+    """
+    Add an article to user's favorites.
+    """
+    try:
+        result = await favorite_article(slug, current_user)
+    except ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ArticleResponse.model_validate(result)
+
+
+@router.delete(
+    "/{slug}/favorite",
+    response_model=ArticleResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Unfavorite an article",
+)
+async def unfavorite_article_endpoint(
+    slug: str,
+    current_user: UserWithToken = Depends(get_current_user),
+) -> ArticleResponse:
+    """
+    Remove an article from user's favorites.
+    """
+    try:
+        result = await unfavorite_article(slug, current_user)
+    except ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ArticleResponse.model_validate(result)

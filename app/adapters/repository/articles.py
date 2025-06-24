@@ -167,3 +167,34 @@ class ArticleRepository:
         """Delete an article from the database."""
         await self.session.delete(article)
         await self.session.commit()
+
+    async def add_favorite(self, article_id: int, user_id: int) -> None:
+        """Add an article to user's favorites."""
+        # Check if already favorited
+        existing = await self.session.execute(
+            select(ArticleFavorite).where(
+                and_(
+                    article_favorite_table.c.article_id == article_id,
+                    article_favorite_table.c.user_id == user_id,
+                )
+            )
+        )
+        if existing.scalars().first() is None:
+            favorite = ArticleFavorite(article_id=article_id, user_id=user_id)
+            self.session.add(favorite)
+            await self.session.commit()
+
+    async def remove_favorite(self, article_id: int, user_id: int) -> None:
+        """Remove an article from user's favorites."""
+        result = await self.session.execute(
+            select(ArticleFavorite).where(
+                and_(
+                    article_favorite_table.c.article_id == article_id,
+                    article_favorite_table.c.user_id == user_id,
+                )
+            )
+        )
+        favorite = result.scalars().first()
+        if favorite:
+            await self.session.delete(favorite)
+            await self.session.commit()

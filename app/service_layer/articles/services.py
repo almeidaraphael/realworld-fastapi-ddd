@@ -434,3 +434,113 @@ async def delete_article(slug: str, current_user: UserWithToken) -> None:
 
         # Delete the article
         await repo.delete(article)
+
+
+async def favorite_article(slug: str, current_user: UserWithToken) -> dict:
+    """
+    Add an article to user's favorites.
+
+    Args:
+        slug: The slug of the article to favorite
+        current_user: The authenticated user
+
+    Returns:
+        Article response with updated favorite status
+
+    Raises:
+        ArticleNotFoundError: If the article doesn't exist
+    """
+    async with AsyncUnitOfWork() as uow:
+        repo = ArticleRepository(uow.session)
+        user_repo = UserRepository(uow.session)
+
+        # Find the article
+        article = await repo.get_by_slug(slug)
+        if not article:
+            raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
+
+        # Add to favorites
+        if article.id is not None:
+            await repo.add_favorite(article.id, current_user.id)
+
+        # Get updated article data with author info
+        author = None
+        if article.author_id:
+            author = await user_repo.get_by_id(article.author_id)
+
+        # Check if current user is following the author
+        following = False
+        if author and author.id is not None and author.id != current_user.id:
+            following = await user_repo.is_following(current_user.id, author.id)
+
+        # Get updated favorite status and count
+        favorited = True  # Just favorited
+        favorites_count = 0
+        if article.id is not None:
+            counts = await repo.get_favorites_count([article.id])
+            favorites_count = counts.get(article.id, 0)
+
+        article_out = _build_article_response(
+            article=article,
+            author_obj=author,
+            following=following,
+            favorited=favorited,
+            favorites_count=favorites_count,
+        )
+
+        return {"article": article_out.model_dump()}
+
+
+async def unfavorite_article(slug: str, current_user: UserWithToken) -> dict:
+    """
+    Remove an article from user's favorites.
+
+    Args:
+        slug: The slug of the article to unfavorite
+        current_user: The authenticated user
+
+    Returns:
+        Article response with updated favorite status
+
+    Raises:
+        ArticleNotFoundError: If the article doesn't exist
+    """
+    async with AsyncUnitOfWork() as uow:
+        repo = ArticleRepository(uow.session)
+        user_repo = UserRepository(uow.session)
+
+        # Find the article
+        article = await repo.get_by_slug(slug)
+        if not article:
+            raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
+
+        # Remove from favorites
+        if article.id is not None:
+            await repo.remove_favorite(article.id, current_user.id)
+
+        # Get updated article data with author info
+        author = None
+        if article.author_id:
+            author = await user_repo.get_by_id(article.author_id)
+
+        # Check if current user is following the author
+        following = False
+        if author and author.id is not None and author.id != current_user.id:
+            following = await user_repo.is_following(current_user.id, author.id)
+
+        # Get updated favorite status and count
+        favorited = False  # Just unfavorited
+        favorites_count = 0
+        if article.id is not None:
+            counts = await repo.get_favorites_count([article.id])
+            favorites_count = counts.get(article.id, 0)
+
+        article_out = _build_article_response(
+            article=article,
+            author_obj=author,
+            following=following,
+            favorited=favorited,
+            favorites_count=favorites_count,
+        )
+
+        return {"article": article_out.model_dump()}
