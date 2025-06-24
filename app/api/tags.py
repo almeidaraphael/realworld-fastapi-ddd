@@ -1,9 +1,10 @@
 """Tags API endpoints."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.domain.tags.schemas import TagsResponse
 from app.service_layer.tags.services import get_tags
+from app.shared.exceptions import DomainError, translate_domain_error_to_http
 
 router = APIRouter(prefix="/tags", tags=["Tags"])
 
@@ -20,4 +21,4 @@ async def get_tags_endpoint() -> TagsResponse:
         tags = await get_tags()
         return TagsResponse(tags=tags)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise translate_domain_error_to_http(DomainError(str(exc))) from exc

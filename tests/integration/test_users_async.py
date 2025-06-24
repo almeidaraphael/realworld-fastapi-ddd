@@ -37,7 +37,7 @@ async def test_create_user_duplicate(async_client: AsyncClient) -> None:
     """
     GIVEN a user already exists
     WHEN registering with the same username/email
-    THEN the API returns 400 and error detail
+    THEN the API returns 409 and error detail with error code
     """
     await register_user(
         async_client, "dupuser", "dup@example.com", "testpass"
@@ -45,10 +45,10 @@ async def test_create_user_duplicate(async_client: AsyncClient) -> None:
     resp = await register_user(
         async_client, "dupuser", "dup@example.com", "testpass"
     )  # Duplicate registration
-    assert resp.status_code == 400
+    assert resp.status_code == 409
     data = resp.json()
     assert "detail" in data
-    assert "registered" in data["detail"]
+    assert "UserAlreadyExistsError" in data["detail"]
 
 
 @pytest.mark.asyncio
@@ -72,12 +72,13 @@ async def test_login_user_invalid(async_client: AsyncClient) -> None:
     """
     GIVEN no user exists for credentials
     WHEN logging in with invalid credentials
-    THEN the API returns 400 and error detail
+    THEN the API returns 401 and error detail with error code
     """
     resp = await login_user(async_client, "notfound@example.com", "wrongpass")
-    assert resp.status_code == 400
+    assert resp.status_code == 401
     data = resp.json()
     assert "detail" in data
+    assert "AuthenticationError" in data["detail"]
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,9 @@
-from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Body, Depends, Request, status
 
-from app.domain.users.exceptions import UserAlreadyExistsError, UserNotFoundError
+from app.domain.users.exceptions import (
+    UserAlreadyExistsError,
+    UserNotFoundError,
+)
 from app.domain.users.schemas import (
     NewUserRequest,
     UserLoginRequest,
@@ -11,6 +14,7 @@ from app.domain.users.schemas import (
 from app.service_layer.users.services import authenticate_user, get_user_by_email
 from app.service_layer.users.services import create_user as create_user_service
 from app.service_layer.users.services import update_user as update_user_service
+from app.shared.exceptions import AuthenticationError, translate_domain_error_to_http
 from app.shared.jwt import create_access_token, decode_access_token
 
 router = APIRouter()
@@ -36,11 +40,13 @@ def get_token_from_header(request: Request) -> str:
     """
     Extracts the JWT token from the Authorization header using
     the 'Token' scheme only (RealWorld spec).
-    Raises HTTPException(401) if missing or invalid.
+    Raises 401 if missing or invalid.
     """
     auth: str | None = request.headers.get("Authorization")
     if not auth or not auth.startswith("Token "):
-        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+        raise translate_domain_error_to_http(
+            AuthenticationError("Missing or invalid Authorization header")
+        )
     return auth.removeprefix("Token ").strip()
 
 
@@ -66,13 +72,15 @@ async def get_current_user(token: str = Depends(get_token_from_header)) -> UserW
     payload = decode_access_token(token)
     email = payload.get("sub")
     if not email or not isinstance(email, str):
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+        raise translate_domain_error_to_http(
+            AuthenticationError("Invalid authentication credentials", error_code="")
+        )
     try:
         user = await get_user_by_email(email)
     except UserNotFoundError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
+        raise translate_domain_error_to_http(exc) from exc
     if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+        raise translate_domain_error_to_http(AuthenticationError("User not found", error_code=""))
     return UserWithToken(
         email=user.email,
         token=token,
@@ -128,12 +136,12 @@ async def create_user(user: NewUserRequest = user_body) -> UserResponse:
 
     Creates a new user in the system and returns the user profile with a JWT authentication token.
     On success, returns HTTP 201 and the created user's information.
-    Raises 400 if the user already exists.
+    Raises 409 if the user already exists.
     """
     try:
         user_data = await create_user_service(user)
     except UserAlreadyExistsError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        raise translate_domain_error_to_http(exc) from exc
     token = create_access_token({"sub": user_data.email})
     user_with_token = UserWithToken(
         email=user_data.email,
@@ -157,11 +165,11 @@ async def login_user(user: UserLoginRequest) -> UserResponse:
     Authenticate an existing user and return a JWT token.
 
     Accepts email and password, verifies credentials, and returns the user profile with a JWT token.
-    Returns 400 if credentials are invalid.
+    Returns 401 if credentials are invalid.
     """
     user_data = await authenticate_user(user)
     if not user_data:
-        raise HTTPException(status_code=400, detail="Invalid email or password")
+        raise translate_domain_error_to_http(AuthenticationError("Invalid email or password"))
     token = create_access_token({"sub": user_data.email})
     user_with_token = UserWithToken(
         email=user_data.email,
