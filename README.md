@@ -186,6 +186,53 @@ make down-db-test
 - **Integration tests:** `tests/integration/` (DB, API, etc.)
 - **End-to-end tests:** `tests/e2e/` (full stack, RealWorld flows)
 
+## Commit Guidelines
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for consistent commit messages and automated changelog generation. All commit messages are validated by a Git hook.
+
+### Quick Tools
+
+- **Interactive commit helper**: `git better-commit` (guides you through creating proper commits)
+- **Analyze recent commits**: `git analyze-commits [count]` (default: 10)
+- **Full guidelines**: See [COMMIT_GUIDELINES.md](COMMIT_GUIDELINES.md)
+
+### Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Examples
+
+```bash
+# Feature with scope
+feat(articles): add article deletion endpoint
+
+# Bug fix
+fix(auth): resolve JWT token expiration handling
+
+# Documentation
+docs: update API documentation with examples
+
+# With body and footer
+feat(users): implement user registration
+
+Add user registration endpoint following RealWorld spec.
+Includes email validation and password hashing.
+
+Closes #42
+```
+
+### Types & Scopes
+
+**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`, `ci`, `build`, `revert`
+
+**Scopes**: `users`, `articles`, `profiles`, `comments`, `auth`, `db`, `api`, `domain`, `service`, `infra`, `config`, `deps`
+
 ## Reference
 - [RealWorld API Spec](https://realworld-docs.netlify.app/docs/specs/backend-specs/endpoints/)
 - See `.github/copilot-instructions.md` for contributor and code generation guidelines.

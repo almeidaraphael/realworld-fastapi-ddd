@@ -1,0 +1,48 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type should be one of the following:
+# * feat: A new feature
+# * fix: A bug fix
+# * docs: Documentation only changes
+# * style: Changes that do not affect the meaning of the code
+# * refactor: A code change that neither fixes a bug nor adds a feature
+# * perf: A code change that improves performance
+# * test: Adding missing tests or correcting existing tests
+# * chore: Changes to the build process or auxiliary tools
+# * ci: Changes to CI configuration files and scripts
+# * build: Changes that affect the build system or external dependencies
+# * revert: Reverts a previous commit
+
+# Scope is optional and should indicate the module/component affected:
+# * users: User-related functionality
+# * articles: Article-related functionality
+# * profiles: Profile-related functionality
+# * comments: Comment-related functionality
+# * auth: Authentication/authorization
+# * db: Database changes
+# * api: API layer changes
+# * domain: Domain layer changes
+# * service: Service layer changes
+# * infra: Infrastructure changes
+# * config: Configuration changes
+
+# Subject line rules:
+# * Use imperative mood ("add" not "added" or "adds")
+# * First letter lowercase (unless proper noun)
+# * No period at the end
+# * Maximum 50 characters
+
+# Body rules:
+# * Wrap at 72 characters
+# * Use imperative mood
+# * Explain what and why, not how
+# * Separate from subject with blank line
+
+# Footer rules:
+# * Reference issues: "Closes #123", "Fixes #456", "Refs #789"
+# * Breaking changes: "BREAKING CHANGE: description"
+# * Co-authored-by: for multiple authors
