@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 
 from app.api.users import get_current_user
-from app.domain.articles.schemas import ArticleCreateRequest, ArticleResponse
+from app.domain.articles.schemas import (
+    ArticleCreateRequest,
+    ArticleResponse,
+    ArticlesListResponse,
+)
 from app.domain.users.schemas import UserWithToken
-from app.service_layer.articles.services import create_article
+from app.service_layer.articles.services import create_article, list_articles
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
@@ -15,14 +19,38 @@ router = APIRouter(prefix="/articles", tags=["Articles"])
     summary="Create an article",
 )
 async def create_article_endpoint(
-    article: ArticleCreateRequest,
+    article: ArticleCreateRequest = Body(...),
     current_user: UserWithToken = Depends(get_current_user),
 ) -> ArticleResponse:
     """
     Create a new article.
     """
     try:
-        created = await create_article(article, current_user)
+        created = await create_article(article.article, current_user)
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ArticleResponse.model_validate(created)
+
+
+@router.get(
+    "",
+    response_model=ArticlesListResponse,
+    summary="List articles",
+)
+async def get_articles(
+    tag: str | None = None,
+    author: str | None = None,
+    favorited: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> ArticlesListResponse:
+    """
+    List articles with optional filters and pagination.
+    """
+    try:
+        result = await list_articles(
+            tag=tag, author=author, favorited_by=favorited, limit=limit, offset=offset
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ArticlesListResponse.model_validate(result)

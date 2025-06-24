@@ -1,8 +1,5 @@
-import logging
-
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.adapters.orm.engine import get_async_engine
 from app.api.users import get_current_user
 from app.domain.profiles.exceptions import (
     CannotFollowYourselfError,
@@ -47,8 +44,6 @@ async def follow_profile(
     Returns 400 if attempting to follow yourself, 404 if the profile does not exist, and 500 for
     internal errors.
     """
-    engine = get_async_engine()
-    logging.debug(f"[follow_profile] Engine URL: {engine.url}")
     try:
         profile = await follow_user(username, current_user.username)
     except CannotFollowYourselfError as exc:

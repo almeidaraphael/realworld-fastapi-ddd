@@ -3,12 +3,41 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class ArticleCreateRequest(BaseModel):
+class ArticleCreate(BaseModel):
     title: str
     description: str
     body: str
     tagList: Optional[list[str]] = Field(default_factory=list)
 
 
+class ArticleCreateRequest(BaseModel):
+    article: ArticleCreate
+
+
+class ArticleAuthorOut(BaseModel):
+    username: str
+    bio: str
+    image: str
+    following: bool
+
+
+class ArticleOut(BaseModel):
+    slug: str
+    title: str
+    description: str
+    body: str
+    tagList: list[str]
+    createdAt: str
+    updatedAt: str
+    favorited: bool
+    favoritesCount: int
+    author: ArticleAuthorOut
+
+
 class ArticleResponse(BaseModel):
     article: dict
+
+
+class ArticlesListResponse(BaseModel):
+    articles: list[dict]
+    articlesCount: int
