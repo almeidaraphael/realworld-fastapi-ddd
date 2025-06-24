@@ -1,13 +1,18 @@
 from fastapi import APIRouter, Body, Depends, HTTPException, status
 
-from app.api.users import get_current_user
+from app.api.users import get_current_user, get_current_user_optional
 from app.domain.articles.schemas import (
     ArticleCreateRequest,
     ArticleResponse,
     ArticlesListResponse,
 )
 from app.domain.users.schemas import UserWithToken
-from app.service_layer.articles.services import create_article, feed_articles, list_articles
+from app.service_layer.articles.services import (
+    create_article,
+    feed_articles,
+    get_article_by_slug,
+    list_articles,
+)
 
 router = APIRouter(prefix="/articles", tags=["Articles"])
 
@@ -74,3 +79,26 @@ async def get_feed(
     except Exception as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return ArticlesListResponse.model_validate(result)
+
+
+@router.get(
+    "/{slug}",
+    response_model=ArticleResponse,
+    summary="Get an article by slug",
+)
+async def get_article(
+    slug: str,
+    current_user: UserWithToken | None = Depends(get_current_user_optional),
+) -> ArticleResponse:
+    """
+    Get a single article by its slug.
+    """
+    from app.domain.articles.exceptions import ArticleNotFoundError
+
+    try:
+        result = await get_article_by_slug(slug, current_user)
+    except ArticleNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ArticleResponse.model_validate(result)

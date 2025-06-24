@@ -21,6 +21,12 @@ class UserRepository:
         )
         return user
 
+    async def get_by_id(self, user_id: int) -> User | None:
+        """Get a user by their ID."""
+        statement = select(User).where(user_table.c.id == user_id)
+        result = await self.session.execute(statement)
+        return result.scalars().first()
+
     async def add(self, user: User) -> User:
         self.session.add(user)
         await self.session.commit()

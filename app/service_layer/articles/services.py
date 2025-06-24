@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 from app.adapters.repository.articles import ArticleRepository
 from app.adapters.repository.users import UserRepository
+from app.domain.articles.exceptions import ArticleNotFoundError
 from app.domain.articles.orm import Article, article_favorite_table
 from app.domain.articles.schemas import ArticleAuthorOut, ArticleCreate, ArticleOut
 from app.domain.users.orm import User
@@ -249,3 +250,61 @@ async def feed_articles(
         )
 
         return {"articles": articles_list, "articlesCount": total}
+
+
+async def get_article_by_slug(slug: str, current_user: UserWithToken | None = None) -> dict:
+    """
+    Get a single article by slug.
+
+    Args:
+        slug: The article slug
+        current_user: Optional current user for following/favorited status
+
+    Returns:
+        dict: Article data with author, favorited, and following status
+
+    Raises:
+        ArticleNotFoundError: If article with slug doesn't exist
+    """
+    async with AsyncUnitOfWork() as uow:
+        repo = ArticleRepository(uow.session)
+        user_repo = UserRepository(uow.session)
+
+        # Get the article
+        article = await repo.get_by_slug(slug)
+        if not article:
+            raise ArticleNotFoundError(f"Article with slug '{slug}' not found")
+
+        # Get the article author
+        author = await user_repo.get_by_id(article.author_id) if article.author_id else None
+
+        # Determine following status
+        following = False
+        favorited = False
+        current_user_id = None
+
+        if current_user and author and author.id:
+            current_user_id = current_user.id
+            following = await user_repo.is_following(current_user.id, author.id)
+
+        # Check if current user favorited this article
+        if current_user_id and article.id:
+            favorited_map = await _build_favorited_map(uow.session, current_user_id, [article.id])
+            favorited = favorited_map.get(article.id, False)
+
+        # Get favorites count
+        favorites_count = 0
+        if article.id:
+            favorites_count_map = await repo.get_favorites_count([article.id])
+            favorites_count = favorites_count_map.get(article.id, 0)
+
+        # Build response
+        article_out = _build_article_response(
+            article=article,
+            author_obj=author,
+            following=following,
+            favorited=favorited,
+            favorites_count=favorites_count,
+        )
+
+        return {"article": article_out.model_dump()}

@@ -251,3 +251,141 @@ async def test_list_articles_response_structure(
         assert field in article
     for field in ["username", "bio", "image", "following"]:
         assert field in article["author"]
+
+
+@pytest.mark.asyncio
+async def test_get_article_by_slug_success(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN an existing article in the database
+    WHEN requesting GET /articles/{slug}
+    THEN the API returns 200 and the article details
+    """
+    user = user_factory.build()
+    username = user.username
+    email = user.email
+
+    await register_user_fixture(async_client, username, email, test_password)
+    login_resp = await login_user_fixture(async_client, email, test_password)
+    token = login_resp.json()["user"]["token"]
+
+    # Create an article first
+    article = article_factory.build(
+        title="Test Article for Get",
+        description="Test Description for Get",
+        body="Test Body for Get",
+        tagList=["test", "get"],
+    )
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {token}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    created_article = create_resp.json()["article"]
+    slug = created_article["slug"]
+
+    # Now get the article by slug
+    get_resp = await async_client.get(f"/articles/{slug}")
+    assert get_resp.status_code == 200
+    data = get_resp.json()
+
+    assert "article" in data
+    article_data = data["article"]
+    assert article_data["title"] == "Test Article for Get"
+    assert article_data["description"] == "Test Description for Get"
+    assert article_data["body"] == "Test Body for Get"
+    assert article_data["tagList"] == ["test", "get"]
+    assert article_data["author"]["username"] == username
+    assert article_data["slug"] == slug
+    assert "createdAt" in article_data
+    assert "updatedAt" in article_data
+    assert "favorited" in article_data
+    assert "favoritesCount" in article_data
+
+
+@pytest.mark.asyncio
+async def test_get_article_by_slug_not_found(async_client):
+    """
+    GIVEN a non-existent article slug
+    WHEN requesting GET /articles/{slug}
+    THEN the API returns 404
+    """
+    resp = await async_client.get("/articles/non-existent-slug")
+    assert resp.status_code == 404
+    data = resp.json()
+    assert "Article with slug 'non-existent-slug' not found" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_get_article_by_slug_with_authenticated_user(
+    async_client,
+    user_factory,
+    article_factory,
+    register_user_fixture,
+    login_user_fixture,
+    test_password,
+):
+    """
+    GIVEN an authenticated user and an existing article
+    WHEN requesting GET /articles/{slug} with authentication
+    THEN the API returns 200 with personalized data (favorited, following status)
+    """
+    # Create author user
+    author = user_factory.build()
+    author_username = author.username
+    author_email = author.email
+
+    await register_user_fixture(async_client, author_username, author_email, test_password)
+    author_login_resp = await login_user_fixture(async_client, author_email, test_password)
+    author_token = author_login_resp.json()["user"]["token"]
+
+    # Create another user (reader)
+    reader = user_factory.build()
+    reader_username = reader.username
+    reader_email = reader.email
+
+    await register_user_fixture(async_client, reader_username, reader_email, test_password)
+    reader_login_resp = await login_user_fixture(async_client, reader_email, test_password)
+    reader_token = reader_login_resp.json()["user"]["token"]
+
+    # Create an article as author
+    article = article_factory.build(
+        title="Test Article with Auth",
+        description="Test Description with Auth",
+        body="Test Body with Auth",
+        tagList=["auth", "test"],
+    )
+    payload = {"article": article.model_dump()}
+
+    create_resp = await async_client.post(
+        "/articles",
+        headers={"Authorization": f"Token {author_token}"},
+        json=payload,
+    )
+    assert create_resp.status_code == 201
+    created_article = create_resp.json()["article"]
+    slug = created_article["slug"]
+
+    # Get the article as the reader (authenticated)
+    get_resp = await async_client.get(
+        f"/articles/{slug}", headers={"Authorization": f"Token {reader_token}"}
+    )
+    assert get_resp.status_code == 200
+    data = get_resp.json()
+
+    assert "article" in data
+    article_data = data["article"]
+    assert article_data["title"] == "Test Article with Auth"
+    assert article_data["author"]["username"] == author_username
+    # Since reader is not following author and hasn't favorited, these should be False
+    assert article_data["favorited"] is False
+    assert article_data["author"]["following"] is False

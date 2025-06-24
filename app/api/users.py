@@ -44,6 +44,77 @@ def get_token_from_header(request: Request) -> str:
     return auth.removeprefix("Token ").strip()
 
 
+def get_optional_token_from_header(request: Request) -> str | None:
+    """
+    Extracts the JWT token from the Authorization header using
+    the 'Token' scheme only (RealWorld spec).
+    Returns None if missing or invalid instead of raising an exception.
+    """
+    auth: str | None = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Token "):
+        return None
+    return auth.removeprefix("Token ").strip()
+
+
+async def get_current_user(token: str = Depends(get_token_from_header)) -> UserWithToken:
+    """
+    Retrieve the current authenticated user from the JWT token.
+
+    Decodes the JWT token, fetches the user by email, and returns the user profile with token.
+    Raises 401 if the token is invalid or the user does not exist.
+    """
+    payload = decode_access_token(token)
+    email = payload.get("sub")
+    if not email or not isinstance(email, str):
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+    try:
+        user = await get_user_by_email(email)
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return UserWithToken(
+        email=user.email,
+        token=token,
+        username=user.username,
+        bio=user.bio or "",
+        image=user.image or "",
+        id=user.id,
+    )
+
+
+async def get_current_user_optional(
+    token: str | None = Depends(get_optional_token_from_header),
+) -> UserWithToken | None:
+    """
+    Retrieve the current authenticated user from the JWT token, or None if not authenticated.
+
+    Decodes the JWT token, fetches the user by email, and returns the user profile with token.
+    Returns None if the token is missing, invalid, or the user does not exist.
+    """
+    if not token:
+        return None
+
+    try:
+        payload = decode_access_token(token)
+        email = payload.get("sub")
+        if not email or not isinstance(email, str):
+            return None
+        user = await get_user_by_email(email)
+        if not user:
+            return None
+        return UserWithToken(
+            email=user.email,
+            token=token,
+            username=user.username,
+            bio=user.bio or "",
+            image=user.image or "",
+            id=user.id,
+        )
+    except (UserNotFoundError, Exception):
+        return None
+
+
 @router.post(
     "/users",
     response_model=UserResponse,
@@ -101,33 +172,6 @@ async def login_user(user: UserLoginRequest) -> UserResponse:
         id=user_data.id,
     )
     return UserResponse(user=user_with_token)
-
-
-async def get_current_user(token: str = Depends(get_token_from_header)) -> UserWithToken:
-    """
-    Retrieve the current authenticated user from the JWT token.
-
-    Decodes the JWT token, fetches the user by email, and returns the user profile with token.
-    Raises 401 if the token is invalid or the user does not exist.
-    """
-    payload = decode_access_token(token)
-    email = payload.get("sub")
-    if not email or not isinstance(email, str):
-        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
-    try:
-        user = await get_user_by_email(email)
-    except UserNotFoundError as exc:
-        raise HTTPException(status_code=401, detail=str(exc)) from exc
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
-    return UserWithToken(
-        email=user.email,
-        token=token,
-        username=user.username,
-        bio=user.bio or "",
-        image=user.image or "",
-        id=user.id,
-    )
 
 
 @router.get(

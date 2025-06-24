@@ -161,9 +161,7 @@ async def test_feed_articles_pagination(async_client: AsyncClient) -> None:
                 "tagList": ["test"],
             }
         }
-        article_response = await async_client.post(
-            "/articles", json=article_data, headers=headers2
-        )
+        article_response = await async_client.post("/articles", json=article_data, headers=headers2)
         assert article_response.status_code == 201
 
     # Test pagination - get first 2 articles
