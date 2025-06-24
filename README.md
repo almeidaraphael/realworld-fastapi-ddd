@@ -9,6 +9,7 @@ This project serves as a comprehensive example of modern FastAPI development pra
 - [Quick Start](#quick-start)
 - [Project Overview](#project-overview)
 - [Architecture](#architecture)
+- [Transaction Management](#transaction-management)
 - [Development Setup](#development-setup)
 - [Database Management](#database-management)
 - [Testing](#testing)
@@ -25,12 +26,14 @@ This project includes comprehensive documentation organized as follows:
 
 ### Core Documentation Files
 - **[README.md](README.md)** (this file) - Complete project overview, setup guide, and central documentation hub
+- **[TRANSACTION_MANAGEMENT.md](TRANSACTION_MANAGEMENT.md)** - Detailed transaction management patterns, advanced usage, and migration guide
 - **[EXCEPTION_HANDLING.md](EXCEPTION_HANDLING.md)** - Comprehensive guide to the exception handling system, architecture, and best practices  
 - **[COMMIT_GUIDELINES.md](COMMIT_GUIDELINES.md)** - Detailed Git commit message standards, conventions, and project-specific guidelines
 
 ### Quick Navigation by Topic
 - [Project Setup & Installation](#development-setup) - Get started with development environment
 - [Architecture & Design](#architecture) - Domain-driven design and project structure
+- [Transaction Management](#transaction-management) - Service layer transaction patterns and database consistency
 - [API Documentation](#api-documentation) - Interactive API docs and endpoint reference
 - [Database Management](#database-management) - Multi-environment database handling and migrations
 - [Testing Strategy](#testing) - Comprehensive testing approach and examples
@@ -40,7 +43,7 @@ This project includes comprehensive documentation organized as follows:
 - [Deployment](#deployment) - Production deployment guide
 - [Contributing](#contributing) - How to contribute to the project
 
-This documentation is designed to be navigable from README.md as the central hub, with specialized guides for complex topics like exception handling and commit standards.
+This documentation is designed to be navigable from README.md as the central hub, with specialized guides for complex topics like transaction management, exception handling, and commit standards.
 
 ### API & Deployment
 - [API Documentation](#api-documentation) - Interactive docs and endpoint examples  
@@ -120,6 +123,7 @@ poetry run uvicorn app.main:app --reload
 
 - ✅ **Complete RealWorld API**: All endpoints from the RealWorld specification
 - ✅ **Domain-Driven Design**: Clean separation of concerns across layers
+- ✅ **Transaction Management**: Consistent database operations with automatic UoW injection and rollback
 - ✅ **Event-Driven Architecture**: Decoupled components with domain events
 - ✅ **Comprehensive Testing**: Unit, integration, and end-to-end tests
 - ✅ **Type Safety**: Full type annotations with mypy validation
@@ -171,7 +175,8 @@ fastapi-realworld-demo/
 │   ├── shared/                # Shared utilities
 │   │   ├── exceptions.py      # Exception handling system
 │   │   ├── jwt.py             # JWT token handling
-│   │   └── pagination.py     # Pagination utilities
+│   │   ├── pagination.py     # Pagination utilities
+│   │   └── transaction.py    # Transaction management utilities
 │   └── main.py                # FastAPI application entry point
 ├── scripts/                   # Utility scripts
 │   ├── db_manager.py          # Database management script
@@ -207,8 +212,36 @@ The application follows DDD principles with clear separation of concerns:
 - **Components**: Service classes that coordinate domain operations
 - **Rules**:
   - Coordinates between domain and infrastructure
-  - Handles transactions and unit of work
+  - Uses consistent transaction management with automatic UoW injection
+  - Handles transactions and unit of work with `@transactional()` decorator
   - Publishes domain events
+
+**Transaction Management:**
+All service functions use the `@transactional()` decorator for consistent transaction handling:
+
+```python
+from app.shared.transaction import transactional, TransactionalService
+
+# Function-based services
+@transactional()
+async def create_user(uow: AsyncUnitOfWork, user_req: NewUserRequest) -> UserRead:
+    repo = UserRepository(uow.session)
+    # Business logic - UoW automatically injected, transaction managed
+    return result
+
+# Class-based services
+class CommentService(TransactionalService):
+    @transactional()
+    async def add_comment(self, uow: AsyncUnitOfWork, data: CommentCreate) -> CommentOut:
+        # Automatic transaction management with rollback on errors
+        pass
+```
+
+**Key Features:**
+- **Automatic UoW Injection**: Unit of Work provided as first parameter
+- **Consistent Error Handling**: Automatic rollback on exceptions
+- **Flexible Configuration**: Optional error handling with `reraise=False`
+- **API Compatibility**: No changes needed to API layer calls
 
 #### 3. API Layer (`app/api/`)
 - **Purpose**: HTTP interface and request/response handling
@@ -241,8 +274,116 @@ HTTP Request → API Layer → Service Layer → Domain Layer
 5. **Infrastructure** handles data persistence
 6. **Response** flows back through layers
 
-- API docs: http://localhost:8000/docs
-- OpenAPI: http://localhost:8000/openapi.json
+## Transaction Management
+
+The application uses a comprehensive transaction management system that ensures consistent database operations across all service layers.
+
+### Core Features
+
+- **Automatic UoW Injection**: Unit of Work automatically provided to service functions
+- **Consistent Error Handling**: Uniform transaction rollback behavior on exceptions  
+- **Multiple Patterns**: Decorator, inheritance, and context manager approaches
+- **Type Safety**: Full type annotations and IDE support
+- **API Compatibility**: No changes required to existing API endpoints
+
+### Usage Patterns
+
+#### 1. Function Decorator (Recommended)
+
+```python
+from app.shared.transaction import transactional
+
+@transactional()
+async def create_article(uow: AsyncUnitOfWork, article_data: ArticleCreate, user: UserWithToken) -> dict:
+    repo = ArticleRepository(uow.session)
+    # Business logic here - transaction automatically managed
+    # Automatic commit on success, rollback on exception
+    return result
+
+# Safe operations that return None on error
+@transactional(reraise=False, log_errors=True)
+async def safe_get_user(uow: AsyncUnitOfWork, user_id: int) -> UserRead | None:
+    # Returns None instead of raising exceptions
+    pass
+```
+
+#### 2. Service Class Inheritance
+
+```python
+from app.shared.transaction import TransactionalService
+
+class CommentService(TransactionalService):
+    
+    @transactional()
+    async def add_comment(self, uow: AsyncUnitOfWork, article_slug: str, comment_data: CommentCreate) -> CommentOut:
+        # Method with automatic transaction management
+        pass
+    
+    async def bulk_operation(self, data_list: list) -> list[CommentOut]:
+        # Using inherited transaction utilities
+        async def operation(uow: AsyncUnitOfWork) -> list[CommentOut]:
+            # Bulk logic here
+            pass
+        
+        return await self._execute_in_transaction(operation)
+```
+
+#### 3. Context Manager (Advanced)
+
+```python
+from app.shared.transaction import transactional_context
+
+async def complex_multi_step_operation():
+    async with transactional_context() as uow:
+        # Multiple repository operations in single transaction
+        user_repo = UserRepository(uow.session)
+        article_repo = ArticleRepository(uow.session)
+        # All operations committed together
+```
+
+### Configuration Options
+
+```python
+# Standard usage (default)
+@transactional()  # reraise=True, log_errors=True
+
+# Safe operations
+@transactional(reraise=False, log_errors=True)  # Returns None on error
+
+# Custom error handling
+@transactional(reraise=True, log_errors=False)  # Manual logging
+```
+
+### Service Layer Implementation
+
+All service domains use consistent transaction management:
+
+| Domain | Functions | Pattern |
+|--------|-----------|---------|
+| **Users** | `create_user`, `authenticate_user`, `update_user` | `@transactional()` |
+| **Articles** | `create_article`, `update_article`, `favorite_article` | `@transactional()` |
+| **Comments** | `CommentService` class methods | `TransactionalService` |
+| **Profiles** | `follow_user`, `unfollow_user` | `@transactional()` |
+| **Tags** | `get_tags` | `@transactional()` |
+
+### Key Benefits
+
+- **Consistency**: All service operations follow the same transaction pattern
+- **Reliability**: Guaranteed rollback on any exception
+- **Maintainability**: Reduced boilerplate code and clear separation of concerns
+- **Testing**: Easy mocking and verification of transactional behavior
+- **Performance**: Proper connection pooling and resource management
+
+### Implementation Guidelines
+
+For detailed guidelines on when and how to use `@transactional()` decorator, see **[TRANSACTION_MANAGEMENT.md](TRANSACTION_MANAGEMENT.md)** which covers:
+
+- **When to use `@transactional()`** - Required vs optional usage patterns
+- **Function signature requirements** - UoW parameter handling
+- **Helper function patterns** - When NOT to use the decorator
+- **Event publishing integration** - Domain events within transactions
+- **Advanced patterns** - Error handling, bulk operations, and context managers
+- **Testing strategies** - Mocking and validation approaches
 
 ## Database Management
 
@@ -1296,151 +1437,6 @@ async def my_endpoint():
     # Implementation...
 
 # Check metrics in logs
-```
-
-### Release Process
-
-#### 1. Prepare Release
-
-```bash
-# Ensure all tests pass
-make test
-
-# Ensure code quality
-make lint
-make typecheck
-
-# Update version
-poetry version patch  # or minor/major
-```
-
-#### 2. Create Release
-
-```bash
-# Create release branch
-git checkout -b release/v1.2.0
-
-# Update CHANGELOG.md
-# Commit changes
-git commit -m "chore: prepare release v1.2.0"
-
-# Create tag
-git tag v1.2.0
-```
-
-#### 3. Deploy
-
-```bash
-# Deploy to staging
-make deploy-staging
-
-# Run smoke tests
-make test-staging
-
-# Deploy to production
-make deploy-production
-```
-
-## Deployment
-
-### Environment Preparation
-
-#### Production Environment Variables
-
-```bash
-# .env.prod
-APP_ENV=production
-DATABASE_URL=postgresql+asyncpg://user:password@prod-db:5432/rw-demo-prod-db
-SECRET_KEY=production-secret-key
-DEBUG=false
-LOG_LEVEL=INFO
-ALLOWED_HOSTS=api.example.com,www.example.com
-```
-
-#### Database Setup
-
-```bash
-# Run migrations in production
-APP_ENV=production poetry run alembic upgrade head
-
-# Verify database schema
-APP_ENV=production make db-check
-```
-
-### Docker Deployment
-
-#### Build Production Image
-
-```bash
-# Build Docker image
-docker build -t fastapi-realworld-demo:latest .
-
-# Test locally
-docker run -p 8000:8000 fastapi-realworld-demo:latest
-```
-
-#### Docker Compose Production
-
-```yaml
-# docker-compose.prod.yml
-version: '3.8'
-services:
-  api:
-    image: fastapi-realworld-demo:latest
-    ports:
-      - "8000:8000"
-    environment:
-      - APP_ENV=production
-    depends_on:
-      - db
-      
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: rw-demo-prod-db
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
-```
-
-### Health Checks and Monitoring
-
-#### Application Health Check
-
-```bash
-# Built-in health check endpoint
-curl http://localhost:8000/healthcheck
-
-# Response
-{"status": "ok"}
-```
-
-#### Database Health Check
-
-```bash
-# Check database connectivity
-make db-check
-
-# Monitor database performance
-make db-info
-```
-
-#### Application Metrics
-
-The application publishes metrics via events:
-
-```python
-# Performance monitoring
-SlowQueryDetected(query="SELECT ...", duration=5.2)
-HighTrafficDetected(endpoint="/api/articles", requests_per_minute=1000)
-
-# Error monitoring  
-UserLoginAttempted(email="user@example.com", success=False)
-ContentFlagged(content_type="article", content_id=456, reason="spam")
 ```
 
 ### Scaling Considerations

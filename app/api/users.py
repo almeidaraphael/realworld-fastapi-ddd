@@ -11,11 +11,15 @@ from app.domain.users.schemas import (
     UserUpdateRequest,
     UserWithToken,
 )
-from app.service_layer.users.services import authenticate_user, get_user_by_email
+from app.service_layer.users.services import (
+    authenticate_user,
+    get_current_user_with_token_from_request,
+    get_current_user_with_token_optional,
+)
 from app.service_layer.users.services import create_user as create_user_service
 from app.service_layer.users.services import update_user as update_user_service
 from app.shared.exceptions import AuthenticationError, translate_domain_error_to_http
-from app.shared.jwt import create_access_token, decode_access_token
+from app.shared.jwt import create_access_token
 
 router = APIRouter()
 
@@ -36,25 +40,12 @@ user_body = Body(
 )
 
 
-def get_token_from_header(request: Request) -> str:
+def get_token_from_header(request: Request) -> str | None:
     """
     Extracts the JWT token from the Authorization header using
     the 'Token' scheme only (RealWorld spec).
-    Raises 401 if missing or invalid.
-    """
-    auth: str | None = request.headers.get("Authorization")
-    if not auth or not auth.startswith("Token "):
-        raise translate_domain_error_to_http(
-            AuthenticationError("Missing or invalid Authorization header")
-        )
-    return auth.removeprefix("Token ").strip()
-
-
-def get_optional_token_from_header(request: Request) -> str | None:
-    """
-    Extracts the JWT token from the Authorization header using
-    the 'Token' scheme only (RealWorld spec).
-    Returns None if missing or invalid instead of raising an exception.
+    Returns the raw token string for further processing by the service layer,
+    or None if missing/invalid. No validation is performed here.
     """
     auth: str | None = request.headers.get("Authorization")
     if not auth or not auth.startswith("Token "):
@@ -62,65 +53,34 @@ def get_optional_token_from_header(request: Request) -> str | None:
     return auth.removeprefix("Token ").strip()
 
 
-async def get_current_user(token: str = Depends(get_token_from_header)) -> UserWithToken:
+async def get_current_user(request: Request) -> UserWithToken:
     """
     Retrieve the current authenticated user from the JWT token.
 
-    Decodes the JWT token, fetches the user by email, and returns the user profile with token.
-    Raises 401 if the token is invalid or the user does not exist.
+    Uses the service layer for complete authentication workflow.
+    Translates domain exceptions to appropriate HTTP responses.
     """
-    payload = decode_access_token(token)
-    email = payload.get("sub")
-    if not email or not isinstance(email, str):
-        raise translate_domain_error_to_http(
-            AuthenticationError("Invalid authentication credentials", error_code="")
-        )
     try:
-        user = await get_user_by_email(email)
+        token = get_token_from_header(request)
+        return await get_current_user_with_token_from_request(token)
+    except AuthenticationError as exc:
+        raise translate_domain_error_to_http(exc) from exc
     except UserNotFoundError as exc:
         raise translate_domain_error_to_http(exc) from exc
-    if not user:
-        raise translate_domain_error_to_http(AuthenticationError("User not found", error_code=""))
-    return UserWithToken(
-        email=user.email,
-        token=token,
-        username=user.username,
-        bio=user.bio or "",
-        image=user.image or "",
-        id=user.id,
-    )
 
 
-async def get_current_user_optional(
-    token: str | None = Depends(get_optional_token_from_header),
-) -> UserWithToken | None:
+async def get_current_user_optional(request: Request) -> UserWithToken | None:
     """
     Retrieve the current authenticated user from the JWT token, or None if not authenticated.
 
-    Decodes the JWT token, fetches the user by email, and returns the user profile with token.
+    Uses the service layer for complete optional authentication workflow.
     Returns None if the token is missing, invalid, or the user does not exist.
     """
+    token = get_token_from_header(request)
     if not token:
         return None
 
-    try:
-        payload = decode_access_token(token)
-        email = payload.get("sub")
-        if not email or not isinstance(email, str):
-            return None
-        user = await get_user_by_email(email)
-        if not user:
-            return None
-        return UserWithToken(
-            email=user.email,
-            token=token,
-            username=user.username,
-            bio=user.bio or "",
-            image=user.image or "",
-            id=user.id,
-        )
-    except (UserNotFoundError, Exception):
-        return None
+    return await get_current_user_with_token_optional(token)
 
 
 @router.post(
@@ -169,7 +129,9 @@ async def login_user(user: UserLoginRequest) -> UserResponse:
     """
     user_data = await authenticate_user(user)
     if not user_data:
-        raise translate_domain_error_to_http(AuthenticationError("Invalid email or password"))
+        raise translate_domain_error_to_http(
+            AuthenticationError("Invalid email or password", error_code="INVALID_CREDENTIALS")
+        )
     token = create_access_token({"sub": user_data.email})
     user_with_token = UserWithToken(
         email=user_data.email,
@@ -213,7 +175,10 @@ async def update_user(
     Accepts updated user fields and returns the updated user profile with a new JWT token.
     Requires authentication.
     """
-    updated_user = await update_user_service(current_user.email, user_update)
+    try:
+        updated_user = await update_user_service(current_user.email, user_update)
+    except UserNotFoundError as exc:
+        raise translate_domain_error_to_http(exc) from exc
     token = create_access_token({"sub": updated_user.email})
     user_with_token = UserWithToken(
         email=updated_user.email,

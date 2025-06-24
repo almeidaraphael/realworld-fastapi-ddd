@@ -78,7 +78,7 @@ async def test_login_user_invalid(async_client: AsyncClient) -> None:
     assert resp.status_code == 401
     data = resp.json()
     assert "detail" in data
-    assert "AuthenticationError" in data["detail"]
+    assert "INVALID_CREDENTIALS:" in data["detail"]
 
 
 @pytest.mark.asyncio
@@ -179,7 +179,7 @@ async def test_get_current_user_invalid_token_payload(async_client: AsyncClient)
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "Invalid authentication credentials"
+    assert resp.json()["detail"] == "INVALID_CREDENTIALS: Invalid authentication credentials"
 
 
 @pytest.mark.asyncio
@@ -195,4 +195,76 @@ async def test_get_current_user_user_not_found(async_client: AsyncClient) -> Non
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 401
-    assert resp.json()["detail"] == "User not found"
+    assert resp.json()["detail"] == "USER_NOT_FOUND: User not found"
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_missing_authorization_header(async_client: AsyncClient) -> None:
+    """
+    GIVEN no Authorization header
+    WHEN requesting /user
+    THEN the API returns 401 with MISSING_TOKEN error
+    """
+    resp = await async_client.get("/api/user")
+    assert resp.status_code == 401
+    data = resp.json()
+    assert "MISSING_TOKEN: Missing or invalid Authorization header" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_invalid_authorization_format(async_client: AsyncClient) -> None:
+    """
+    GIVEN invalid Authorization header format (not starting with 'Token ')
+    WHEN requesting /user
+    THEN the API returns 401 with MISSING_TOKEN error
+    """
+    resp = await async_client.get(
+        "/api/user",
+        headers={"Authorization": "Bearer invalidformat"},
+    )
+    assert resp.status_code == 401
+    data = resp.json()
+    assert "MISSING_TOKEN: Missing or invalid Authorization header" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_get_current_user_empty_token(async_client: AsyncClient) -> None:
+    """
+    GIVEN empty token after 'Token ' prefix
+    WHEN requesting /user
+    THEN the API returns 401 with MISSING_TOKEN error
+    """
+    resp = await async_client.get(
+        "/api/user",
+        headers={"Authorization": "Token "},
+    )
+    assert resp.status_code == 401
+    data = resp.json()
+    assert "MISSING_TOKEN: Missing or invalid Authorization header" in data["detail"]
+
+
+@pytest.mark.asyncio
+async def test_update_user_with_user_not_found_error(async_client: AsyncClient) -> None:
+    """
+    GIVEN a valid token for a user that doesn't exist in database
+    WHEN updating user profile
+    THEN the API returns 401 because authentication fails (user not found in DB)
+    """
+    # Create a token for a non-existent user
+    token = create_access_token({"sub": "nonexistent@example.com"})
+
+    update_data = {
+        "user": {
+            "bio": "Updated bio",
+            "image": "https://example.com/new-image.jpg"
+        }
+    }
+
+    resp = await async_client.put(
+        "/api/user",
+        json=update_data,
+        headers={"Authorization": f"Token {token}"},
+    )
+    assert resp.status_code == 401
+    data = resp.json()
+    assert "USER_NOT_FOUND: User not found" in data["detail"]

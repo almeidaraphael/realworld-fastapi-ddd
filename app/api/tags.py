@@ -20,5 +20,5 @@ async def get_tags_endpoint() -> TagsResponse:
     try:
         tags = await get_tags()
         return TagsResponse(tags=tags)
-    except Exception as exc:
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
+    except DomainError as exc:
+        raise translate_domain_error_to_http(exc) from exc

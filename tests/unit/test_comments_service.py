@@ -25,7 +25,7 @@ def mock_uow(mocker):
 @pytest.fixture
 def comment_service(mock_uow):
     """Create a comment service with mocked dependencies."""
-    return CommentService(mock_uow)
+    return CommentService()
 
 
 @pytest.fixture
@@ -76,6 +76,9 @@ async def test_add_comment_to_article_success(
     WHEN adding a comment to the article
     THEN the comment should be created and returned successfully
     """
+    # Mock the transactional decorator to pass through the mocked UoW
+    mocker.patch("app.shared.transaction.AsyncUnitOfWork", return_value=mock_uow)
+
     # Mock repositories
     article_repo_mock = mocker.Mock()
     comment_repo_mock = mocker.Mock()
@@ -127,6 +130,9 @@ async def test_add_comment_article_not_found(
     WHEN adding a comment to the article
     THEN an ArticleNotFoundError should be raised
     """
+    # Mock the transactional decorator to pass through the mocked UoW
+    mocker.patch("app.shared.transaction.AsyncUnitOfWork", return_value=mock_uow)
+
     # Mock repositories
     article_repo_mock = mocker.Mock()
     mocker.patch(
@@ -152,6 +158,9 @@ async def test_delete_comment_success(
     WHEN deleting the comment
     THEN the comment should be deleted successfully
     """
+    # Mock the transactional decorator to pass through the mocked UoW
+    mocker.patch("app.shared.transaction.AsyncUnitOfWork", return_value=mock_uow)
+
     # Mock repositories
     article_repo_mock = mocker.Mock()
     comment_repo_mock = mocker.Mock()
@@ -190,6 +199,9 @@ async def test_delete_comment_permission_denied(
     WHEN trying to delete the comment
     THEN a CommentPermissionError should be raised
     """
+    # Mock the transactional decorator to pass through the mocked UoW
+    mocker.patch("app.shared.transaction.AsyncUnitOfWork", return_value=mock_uow)
+
     # Mock repositories
     article_repo_mock = mocker.Mock()
     comment_repo_mock = mocker.Mock()

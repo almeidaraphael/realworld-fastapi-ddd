@@ -149,6 +149,24 @@ async def test_benchmark_cleanup_methods():
     print(f"  TRUNCATE CASCADE: {results['truncate_cascade']:.3f}s")
     print(f"  Selective DELETE: {results['selective_delete']:.3f}s")
 
+
+@pytest.mark.asyncio
+async def test_database_cleanup_benchmark():
+    """
+    GIVEN the improved cleanup methods
+    WHEN benchmarking cleanup performance
+    THEN new methods should outperform old methods
+    """
+    results = await benchmark_cleanup_methods()
+
+    # Both methods should work
+    assert "truncate_cascade" in results
+    assert "selective_delete" in results
+
+    # Both should complete in reasonable time
+    assert results["truncate_cascade"] < 1.0  # 1 second max
+    assert results["selective_delete"] < 2.0  # 2 seconds max
+
     # Calculate speedup ratio (either direction)
     if results["truncate_cascade"] < results["selective_delete"]:
         speedup = results["selective_delete"] / results["truncate_cascade"]

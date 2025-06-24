@@ -2,10 +2,10 @@
 Domain exceptions for comment-related operations.
 """
 
-from app.shared.exceptions import NotFoundError, PermissionError
+from app.shared.exceptions import DomainError, NotFoundError, PermissionError
 
 
-class CommentError(Exception):
+class CommentError(DomainError):
     """Base exception for all comment-related errors."""
 
 

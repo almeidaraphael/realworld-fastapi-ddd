@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Body, Depends, status
 
-from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 from app.api.users import get_current_user, get_current_user_optional
 from app.domain.articles.exceptions import ArticleNotFoundError, ArticlePermissionError
 from app.domain.articles.schemas import (
@@ -72,11 +71,9 @@ async def get_articles(
         result = await list_articles(
             tag=tag, author=author, favorited_by=favorited, limit=limit, offset=offset
         )
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
-    return ArticlesListResponse.model_validate(result)
+        return ArticlesListResponse.model_validate(result)
+    except (UserNotFoundError, ArticleNotFoundError) as exc:
+        raise translate_domain_error_to_http(exc) from exc
 
 
 @router.get(
@@ -94,11 +91,9 @@ async def get_feed(
     """
     try:
         result = await feed_articles(current_user, limit=limit, offset=offset)
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
-    return ArticlesListResponse.model_validate(result)
+        return ArticlesListResponse.model_validate(result)
+    except (UserNotFoundError, ArticleNotFoundError) as exc:
+        raise translate_domain_error_to_http(exc) from exc
 
 
 @router.get(
@@ -115,13 +110,9 @@ async def get_article(
     """
     try:
         result = await get_article_by_slug(slug, current_user)
+        return ArticleResponse.model_validate(result)
     except ArticleNotFoundError as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
-    return ArticleResponse.model_validate(result)
 
 
 @router.put(
@@ -141,13 +132,9 @@ async def update_article_endpoint(
     """
     try:
         result = await update_article(slug, article.article, current_user)
+        return ArticleResponse.model_validate(result)
     except (ArticleNotFoundError, ArticlePermissionError) as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
-    return ArticleResponse.model_validate(result)
 
 
 @router.delete(
@@ -168,10 +155,6 @@ async def delete_article_endpoint(
         await delete_article(slug, current_user)
     except (ArticleNotFoundError, ArticlePermissionError) as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
 
 
 @router.post(
@@ -189,20 +172,15 @@ async def create_comment_endpoint(
     Create a new comment on an article.
     """
     try:
-        async with AsyncUnitOfWork() as uow:
-            service = CommentService(uow)
-            created_comment = await service.add_comment_to_article(
-                article_slug=slug,
-                comment_data=comment.comment,
-                current_user_id=current_user.id,
-            )
-            return CommentResponse(comment=created_comment)
+        service = CommentService()
+        created_comment = await service.add_comment_to_article(
+            article_slug=slug,
+            comment_data=comment.comment,
+            current_user_id=current_user.id,
+        )
+        return CommentResponse(comment=created_comment)
     except (ArticleNotFoundError, UserNotFoundError) as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
 
 
 @router.get(
@@ -218,20 +196,15 @@ async def get_comments_endpoint(
     Get all comments for an article.
     """
     try:
-        async with AsyncUnitOfWork() as uow:
-            service = CommentService(uow)
-            user_id = current_user.id if current_user else None
-            comments = await service.get_comments_from_article(
-                article_slug=slug,
-                current_user_id=user_id,
-            )
-            return CommentsResponse(comments=comments)
+        service = CommentService()
+        user_id = current_user.id if current_user else None
+        comments = await service.get_comments_from_article(
+            article_slug=slug,
+            current_user_id=user_id,
+        )
+        return CommentsResponse(comments=comments)
     except ArticleNotFoundError as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
 
 
 @router.delete(
@@ -249,19 +222,14 @@ async def delete_comment_endpoint(
     Only the author of the comment can delete it.
     """
     try:
-        async with AsyncUnitOfWork() as uow:
-            service = CommentService(uow)
-            await service.delete_comment(
-                article_slug=slug,
-                comment_id=comment_id,
-                current_user_id=current_user.id,
-            )
+        service = CommentService()
+        await service.delete_comment(
+            article_slug=slug,
+            comment_id=comment_id,
+            current_user_id=current_user.id,
+        )
     except (ArticleNotFoundError, CommentNotFoundError, CommentPermissionError) as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
 
 
 @router.post(
@@ -279,13 +247,9 @@ async def favorite_article_endpoint(
     """
     try:
         result = await favorite_article(slug, current_user)
+        return ArticleResponse.model_validate(result)
     except ArticleNotFoundError as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
-    return ArticleResponse.model_validate(result)
 
 
 @router.delete(
@@ -303,10 +267,6 @@ async def unfavorite_article_endpoint(
     """
     try:
         result = await unfavorite_article(slug, current_user)
+        return ArticleResponse.model_validate(result)
     except ArticleNotFoundError as exc:
         raise translate_domain_error_to_http(exc) from exc
-    except Exception as exc:
-        from app.shared.exceptions import DomainError
-
-        raise translate_domain_error_to_http(DomainError(str(exc))) from exc
-    return ArticleResponse.model_validate(result)

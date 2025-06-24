@@ -5,10 +5,16 @@ Contains specific exceptions that can occur during article operations,
 providing better error handling and more informative error messages.
 """
 
-from app.shared.exceptions import ConflictError, NotFoundError, PermissionError, ValidationError
+from app.shared.exceptions import (
+    ConflictError,
+    DomainError,
+    NotFoundError,
+    PermissionError,
+    ValidationError,
+)
 
 
-class ArticleError(Exception):
+class ArticleError(DomainError):
     """Base exception for all article-related errors."""
 
 

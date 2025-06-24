@@ -161,6 +161,48 @@ class TestExceptionTranslation:
 
         assert "CUSTOM_ERROR: Something went wrong" in http_exc.detail
 
+    def test_authentication_error_with_error_code(self):
+        """
+        GIVEN AuthenticationError with error_code
+        WHEN translated
+        THEN includes error_code in detail.
+        """
+        error = AuthenticationError("Invalid token", error_code="INVALID_TOKEN")
+        http_exc = translate_domain_error_to_http(error)
+
+        assert isinstance(http_exc, HTTPException)
+        assert http_exc.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "INVALID_TOKEN: Invalid token" in http_exc.detail
+
+    def test_authentication_missing_token_error(self):
+        """
+        GIVEN AuthenticationError with MISSING_TOKEN code
+        WHEN translated
+        THEN returns 401.
+        """
+        error = AuthenticationError(
+            "Missing or invalid Authorization header",
+            error_code="MISSING_TOKEN"
+        )
+        http_exc = translate_domain_error_to_http(error)
+
+        assert isinstance(http_exc, HTTPException)
+        assert http_exc.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "MISSING_TOKEN: Missing or invalid Authorization header" in http_exc.detail
+
+    def test_authentication_user_not_found_error(self):
+        """
+        GIVEN AuthenticationError with USER_NOT_FOUND code
+        WHEN translated
+        THEN returns 401.
+        """
+        error = AuthenticationError("User not found", error_code="USER_NOT_FOUND")
+        http_exc = translate_domain_error_to_http(error)
+
+        assert isinstance(http_exc, HTTPException)
+        assert http_exc.status_code == status.HTTP_401_UNAUTHORIZED
+        assert "USER_NOT_FOUND: User not found" in http_exc.detail
+
 
 class TestDomainErrorCreation:
     """Test creating domain errors with messages and error codes."""

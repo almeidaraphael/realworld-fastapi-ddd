@@ -1,4 +1,4 @@
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import HTTPException
@@ -69,38 +69,55 @@ async def test_login_user_returns_user_response(user_factory) -> None:
 
 @pytest.mark.asyncio
 async def test_get_current_user_return_statement(user_factory) -> None:
+    """
+    GIVEN a valid user and token
+    WHEN get_current_user is called
+    THEN it should return the user with token
+    """
     user_obj = user_factory.build()
-    user_data = user_obj.model_dump()
-    email = user_data["email"]
-    with patch.object(users_api, "decode_access_token", return_value={"sub": email}):
-        with patch.object(
-            users_api,
-            "get_user_by_email",
-            new=AsyncMock(
-                return_value=UserWithToken(
-                    id=1,
-                    email=email,
-                    token="tok",
-                    username=user_obj.username,
-                    bio=user_obj.bio,
-                    image=user_obj.image,
-                )
-            ),
-        ):
-            user = await users_api.get_current_user(token="tok")
-            assert isinstance(user, UserWithToken)
-            assert user.email == email
-            assert user.token == "tok"
+    email = user_obj.email
+
+    mock_request = Mock()
+    mock_request.headers = {"Authorization": "Token valid_token"}
+
+    with patch.object(
+        users_api,
+        "get_current_user_with_token_from_request",
+        new=AsyncMock(
+            return_value=UserWithToken(
+                email=email,
+                token="valid_token",
+                username=user_obj.username,
+                bio=user_obj.bio or "",
+                image=user_obj.image or "",
+                id=user_obj.id,
+            )
+        ),
+    ):
+        user = await users_api.get_current_user(mock_request)
+        assert isinstance(user, UserWithToken)
+        assert user.email == email
+        assert user.token == "valid_token"
 
 
 @pytest.mark.asyncio
 async def test_get_current_user_user_not_found_raises(user_factory) -> None:
-    user_obj = user_factory.build()
-    user_data = user_obj.model_dump()
-    email = user_data["email"]
-    with patch.object(users_api, "decode_access_token", return_value={"sub": email}):
-        with patch.object(users_api, "get_user_by_email", new=AsyncMock(return_value=None)):
-            with pytest.raises(HTTPException) as exc_info:
-                await users_api.get_current_user(token="tok")
-            assert exc_info.value.status_code == 401
-            assert exc_info.value.detail == "User not found"
+    """
+    GIVEN an invalid token that results in user not found
+    WHEN get_current_user is called
+    THEN it should raise HTTPException with 401 status
+    """
+    mock_request = Mock()
+    mock_request.headers = {"Authorization": "Token invalid_token"}
+
+    from app.shared.exceptions import AuthenticationError
+
+    with patch.object(
+        users_api,
+        "get_current_user_with_token_from_request",
+        new=AsyncMock(side_effect=AuthenticationError("User not found")),
+    ):
+        with pytest.raises(HTTPException) as exc_info:
+            await users_api.get_current_user(mock_request)
+        assert exc_info.value.status_code == 401
+        assert "AuthenticationError: User not found" in exc_info.value.detail

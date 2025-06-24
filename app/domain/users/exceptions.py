@@ -2,10 +2,10 @@
 Domain exceptions for user-related operations.
 """
 
-from app.shared.exceptions import AuthenticationError, ConflictError, NotFoundError
+from app.shared.exceptions import AuthenticationError, ConflictError, DomainError, NotFoundError
 
 
-class UserError(Exception):
+class UserError(DomainError):
     """Base exception for all user-related errors."""
 
 
