@@ -30,17 +30,17 @@ async def test_feed_articles_authenticated_user(async_client: AsyncClient) -> No
     }
 
     # Register both users
-    response1 = await async_client.post("/users", json=user1_data)
+    response1 = await async_client.post("/api/users", json=user1_data)
     assert response1.status_code == 201
     user1_token = response1.json()["user"]["token"]
 
-    response2 = await async_client.post("/users", json=user2_data)
+    response2 = await async_client.post("/api/users", json=user2_data)
     assert response2.status_code == 201
     user2_token = response2.json()["user"]["token"]
 
     # User1 follows User2
     headers1 = {"Authorization": f"Token {user1_token}"}
-    follow_response = await async_client.post("/profiles/author/follow", headers=headers1)
+    follow_response = await async_client.post("/api/profiles/author/follow", headers=headers1)
     assert follow_response.status_code == 200
 
     # User2 creates an article
@@ -53,11 +53,11 @@ async def test_feed_articles_authenticated_user(async_client: AsyncClient) -> No
             "tagList": ["test", "feed"],
         }
     }
-    article_response = await async_client.post("/articles", json=article_data, headers=headers2)
+    article_response = await async_client.post("/api/articles", json=article_data, headers=headers2)
     assert article_response.status_code == 201
 
     # User1 requests their feed
-    feed_response = await async_client.get("/articles/feed", headers=headers1)
+    feed_response = await async_client.get("/api/articles/feed", headers=headers1)
     assert feed_response.status_code == 200
 
     feed_data = feed_response.json()
@@ -88,13 +88,13 @@ async def test_feed_articles_empty_when_not_following_anyone(async_client: Async
     }
 
     # Register user
-    response = await async_client.post("/users", json=user_data)
+    response = await async_client.post("/api/users", json=user_data)
     assert response.status_code == 201
     token = response.json()["user"]["token"]
 
     # Request feed
     headers = {"Authorization": f"Token {token}"}
-    feed_response = await async_client.get("/articles/feed", headers=headers)
+    feed_response = await async_client.get("/api/articles/feed", headers=headers)
     assert feed_response.status_code == 200
 
     feed_data = feed_response.json()
@@ -109,7 +109,7 @@ async def test_feed_articles_requires_authentication(async_client: AsyncClient) 
     WHEN: A request is made to the feed endpoint
     THEN: Should return 401 unauthorized
     """
-    response = await async_client.get("/articles/feed")
+    response = await async_client.get("/api/articles/feed")
     assert response.status_code == 401
 
 
@@ -137,17 +137,17 @@ async def test_feed_articles_pagination(async_client: AsyncClient) -> None:
     }
 
     # Register both users
-    response1 = await async_client.post("/users", json=user1_data)
+    response1 = await async_client.post("/api/users", json=user1_data)
     assert response1.status_code == 201
     user1_token = response1.json()["user"]["token"]
 
-    response2 = await async_client.post("/users", json=user2_data)
+    response2 = await async_client.post("/api/users", json=user2_data)
     assert response2.status_code == 201
     user2_token = response2.json()["user"]["token"]
 
     # User1 follows User2
     headers1 = {"Authorization": f"Token {user1_token}"}
-    follow_response = await async_client.post("/profiles/writer/follow", headers=headers1)
+    follow_response = await async_client.post("/api/profiles/writer/follow", headers=headers1)
     assert follow_response.status_code == 200
 
     # User2 creates multiple articles
@@ -161,11 +161,13 @@ async def test_feed_articles_pagination(async_client: AsyncClient) -> None:
                 "tagList": ["test"],
             }
         }
-        article_response = await async_client.post("/articles", json=article_data, headers=headers2)
+        article_response = await async_client.post(
+            "/api/articles", json=article_data, headers=headers2
+        )
         assert article_response.status_code == 201
 
     # Test pagination - get first 2 articles
-    feed_response = await async_client.get("/articles/feed?limit=2&offset=0", headers=headers1)
+    feed_response = await async_client.get("/api/articles/feed?limit=2&offset=0", headers=headers1)
     assert feed_response.status_code == 200
 
     feed_data = feed_response.json()
@@ -173,7 +175,7 @@ async def test_feed_articles_pagination(async_client: AsyncClient) -> None:
     assert len(feed_data["articles"]) == 2
 
     # Test pagination - get next article
-    feed_response = await async_client.get("/articles/feed?limit=2&offset=2", headers=headers1)
+    feed_response = await async_client.get("/api/articles/feed?limit=2&offset=2", headers=headers1)
     assert feed_response.status_code == 200
 
     feed_data = feed_response.json()

@@ -32,7 +32,7 @@ async def test_create_article_success(
     payload = {"article": article.model_dump()}
 
     resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -74,7 +74,7 @@ async def _setup_articles(
     # Create first article with specific tags for testing
     article1 = article_factory.build(tagList=["t1", "t2"], title="A1")
     await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token1}"},
         json={"article": article1.model_dump()},
     )
@@ -82,7 +82,7 @@ async def _setup_articles(
     # Create second article with specific tags for testing
     article2 = article_factory.build(tagList=["t2", "t3"], title="A2")
     await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token2}"},
         json={"article": article2.model_dump()},
     )
@@ -112,7 +112,7 @@ async def test_list_articles_returns_all(
         article_factory,
         test_password,
     )
-    resp = await async_client.get("/articles")
+    resp = await async_client.get("/api/articles")
     if resp.status_code != 200:
         print(f"Error response: {resp.text}")
     assert resp.status_code == 200
@@ -143,7 +143,7 @@ async def test_list_articles_filter_by_tag(
         article_factory,
         test_password,
     )
-    resp = await async_client.get("/articles?tag=t1")
+    resp = await async_client.get("/api/articles?tag=t1")
     if resp.status_code != 200:
         print(f"Error response: {resp.text}")
     assert resp.status_code == 200
@@ -174,7 +174,7 @@ async def test_list_articles_filter_by_author(
         article_factory,
         test_password,
     )
-    resp = await async_client.get(f"/articles?author={username2}")
+    resp = await async_client.get(f"/api/articles?author={username2}")
     assert resp.status_code == 200
     data = resp.json()
     assert data["articlesCount"] == 1
@@ -203,7 +203,7 @@ async def test_list_articles_pagination(
         article_factory,
         test_password,
     )
-    resp = await async_client.get("/articles?limit=1&offset=1")
+    resp = await async_client.get("/api/articles?limit=1&offset=1")
     assert resp.status_code == 200
     data = resp.json()
     assert data["articlesCount"] == 2
@@ -232,7 +232,7 @@ async def test_list_articles_response_structure(
         article_factory,
         test_password,
     )
-    resp = await async_client.get("/articles")
+    resp = await async_client.get("/api/articles")
     assert resp.status_code == 200
     data = resp.json()
     article = data["articles"][0]
@@ -285,7 +285,7 @@ async def test_get_article_by_slug_success(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -294,7 +294,7 @@ async def test_get_article_by_slug_success(
     slug = created_article["slug"]
 
     # Now get the article by slug
-    get_resp = await async_client.get(f"/articles/{slug}")
+    get_resp = await async_client.get(f"/api/articles/{slug}")
     assert get_resp.status_code == 200
     data = get_resp.json()
 
@@ -319,7 +319,7 @@ async def test_get_article_by_slug_not_found(async_client):
     WHEN requesting GET /articles/{slug}
     THEN the API returns 404
     """
-    resp = await async_client.get("/articles/non-existent-slug")
+    resp = await async_client.get("/api/articles/non-existent-slug")
     assert resp.status_code == 404
     data = resp.json()
     assert "Article with slug 'non-existent-slug' not found" in data["detail"]
@@ -367,7 +367,7 @@ async def test_get_article_by_slug_with_authenticated_user(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {author_token}"},
         json=payload,
     )
@@ -377,7 +377,7 @@ async def test_get_article_by_slug_with_authenticated_user(
 
     # Get the article as the reader (authenticated)
     get_resp = await async_client.get(
-        f"/articles/{slug}", headers={"Authorization": f"Token {reader_token}"}
+        f"/api/articles/{slug}", headers={"Authorization": f"Token {reader_token}"}
     )
     assert get_resp.status_code == 200
     data = get_resp.json()
@@ -423,7 +423,7 @@ async def test_update_article_success(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -441,7 +441,7 @@ async def test_update_article_success(
     }
 
     update_resp = await async_client.put(
-        f"/articles/{original_slug}",
+        f"/api/articles/{original_slug}",
         headers={"Authorization": f"Token {token}"},
         json=update_payload,
     )
@@ -483,7 +483,7 @@ async def test_update_article_not_found(
     payload = {"article": {"title": "Updated Title"}}
 
     resp = await async_client.put(
-        "/articles/non-existent-slug",
+        "/api/articles/non-existent-slug",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -515,7 +515,7 @@ async def test_update_article_unauthorized(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token1}"},
         json=payload,
     )
@@ -532,7 +532,7 @@ async def test_update_article_unauthorized(
     update_payload = {"article": {"title": "Unauthorized Update"}}
 
     resp = await async_client.put(
-        f"/articles/{slug}",
+        f"/api/articles/{slug}",
         headers={"Authorization": f"Token {token2}"},
         json=update_payload,
     )
@@ -569,7 +569,7 @@ async def test_update_article_partial_update(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -581,7 +581,7 @@ async def test_update_article_partial_update(
     update_payload = {"article": {"description": "Updated Description Only"}}
 
     update_resp = await async_client.put(
-        f"/articles/{slug}",
+        f"/api/articles/{slug}",
         headers={"Authorization": f"Token {token}"},
         json=update_payload,
     )
@@ -624,7 +624,7 @@ async def test_update_article_title_changes_slug(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -636,7 +636,7 @@ async def test_update_article_title_changes_slug(
     update_payload = {"article": {"title": new_title}}
 
     update_resp = await async_client.put(
-        f"/articles/{original_slug}",
+        f"/api/articles/{original_slug}",
         headers={"Authorization": f"Token {token}"},
         json=update_payload,
     )
@@ -649,12 +649,12 @@ async def test_update_article_title_changes_slug(
     assert "completely-new-title" in new_slug  # slug should be based on new title
 
     # Verify the article can be fetched with the new slug
-    get_resp = await async_client.get(f"/articles/{new_slug}")
+    get_resp = await async_client.get(f"/api/articles/{new_slug}")
     assert get_resp.status_code == 200
     assert get_resp.json()["article"]["title"] == new_title
 
     # Verify the old slug no longer works
-    old_get_resp = await async_client.get(f"/articles/{original_slug}")
+    old_get_resp = await async_client.get(f"/api/articles/{original_slug}")
     assert old_get_resp.status_code == 404
 
 
@@ -690,7 +690,7 @@ async def test_delete_article_success(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -699,18 +699,18 @@ async def test_delete_article_success(
     slug = created_article["slug"]
 
     # Verify the article exists
-    get_resp = await async_client.get(f"/articles/{slug}")
+    get_resp = await async_client.get(f"/api/articles/{slug}")
     assert get_resp.status_code == 200
 
     # Delete the article
     delete_resp = await async_client.delete(
-        f"/articles/{slug}",
+        f"/api/articles/{slug}",
         headers={"Authorization": f"Token {token}"},
     )
     assert delete_resp.status_code == 200
 
     # Verify the article no longer exists
-    get_after_delete_resp = await async_client.get(f"/articles/{slug}")
+    get_after_delete_resp = await async_client.get(f"/api/articles/{slug}")
     assert get_after_delete_resp.status_code == 404
 
 
@@ -737,7 +737,7 @@ async def test_delete_article_not_found(
 
     # Try to delete non-existent article
     resp = await async_client.delete(
-        "/articles/non-existent-slug",
+        "/api/articles/non-existent-slug",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 404
@@ -768,7 +768,7 @@ async def test_delete_article_unauthorized(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token1}"},
         json=payload,
     )
@@ -783,14 +783,14 @@ async def test_delete_article_unauthorized(
 
     # Try to delete with second user
     resp = await async_client.delete(
-        f"/articles/{slug}",
+        f"/api/articles/{slug}",
         headers={"Authorization": f"Token {token2}"},
     )
     assert resp.status_code == 403
     assert "Only the author can delete this article" in resp.json()["detail"]
 
     # Verify the article still exists
-    get_resp = await async_client.get(f"/articles/{slug}")
+    get_resp = await async_client.get(f"/api/articles/{slug}")
     assert get_resp.status_code == 200
 
 
@@ -818,7 +818,7 @@ async def test_delete_article_requires_authentication(
     payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=payload,
     )
@@ -826,9 +826,9 @@ async def test_delete_article_requires_authentication(
     slug = create_resp.json()["article"]["slug"]
 
     # Try to delete without authentication
-    resp = await async_client.delete(f"/articles/{slug}")
+    resp = await async_client.delete(f"/api/articles/{slug}")
     assert resp.status_code == 401
 
     # Verify the article still exists
-    get_resp = await async_client.get(f"/articles/{slug}")
+    get_resp = await async_client.get(f"/api/articles/{slug}")
     assert get_resp.status_code == 200

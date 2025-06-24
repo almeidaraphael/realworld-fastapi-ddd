@@ -27,7 +27,7 @@ async def test_follow_profile_success(async_client: AsyncClient, user_read_facto
     login_resp = await login_user(async_client, user1_email, password)
     token = login_resp.json()["user"]["token"]
     resp = await async_client.post(
-        f"/profiles/{user2_username}/follow",
+        f"/api/profiles/{user2_username}/follow",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 200
@@ -54,7 +54,7 @@ async def test_follow_profile_cannot_follow_self(
     login_resp = await login_user(async_client, user_email, password)
     token = login_resp.json()["user"]["token"]
     resp = await async_client.post(
-        f"/profiles/{user_username}/follow",
+        f"/api/profiles/{user_username}/follow",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 400
@@ -77,7 +77,7 @@ async def test_follow_profile_not_found(async_client: AsyncClient, user_read_fac
     login_resp = await login_user(async_client, user_email, password)
     token = login_resp.json()["user"]["token"]
     resp = await async_client.post(
-        "/profiles/nonexistentuser/follow",
+        "/api/profiles/nonexistentuser/follow",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 404
@@ -106,12 +106,12 @@ async def test_unfollow_profile_success(async_client: AsyncClient, user_read_fac
     token = login_resp.json()["user"]["token"]
     # Follow first
     await async_client.post(
-        f"/profiles/{user2_username}/follow",
+        f"/api/profiles/{user2_username}/follow",
         headers={"Authorization": f"Token {token}"},
     )
     # Now unfollow
     resp = await async_client.delete(
-        f"/profiles/{user2_username}/follow",
+        f"/api/profiles/{user2_username}/follow",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 200
@@ -142,7 +142,7 @@ async def test_unfollow_profile_not_following(async_client: AsyncClient, user_re
     token = login_resp.json()["user"]["token"]
     # Unfollow without following first
     resp = await async_client.delete(
-        f"/profiles/{user2_username}/follow",
+        f"/api/profiles/{user2_username}/follow",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 200
@@ -169,7 +169,7 @@ async def test_unfollow_profile_cannot_unfollow_self(
     login_resp = await login_user(async_client, user_email, password)
     token = login_resp.json()["user"]["token"]
     resp = await async_client.delete(
-        f"/profiles/{user_username}/follow",
+        f"/api/profiles/{user_username}/follow",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 400
@@ -192,7 +192,7 @@ async def test_unfollow_profile_not_found(async_client: AsyncClient, user_read_f
     login_resp = await login_user(async_client, user_email, password)
     token = login_resp.json()["user"]["token"]
     resp = await async_client.delete(
-        "/profiles/nonexistentuser/follow",
+        "/api/profiles/nonexistentuser/follow",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 404

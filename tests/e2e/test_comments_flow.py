@@ -22,7 +22,7 @@ async def test_comment_crud_flow(async_client: AsyncClient):
         }
     }
 
-    response = await async_client.post("/users", json=user_data)
+    response = await async_client.post("/api/users", json=user_data)
     assert response.status_code == 201
     user_token = response.json()["user"]["token"]
 
@@ -37,7 +37,7 @@ async def test_comment_crud_flow(async_client: AsyncClient):
     }
 
     headers = {"Authorization": f"Token {user_token}"}
-    article_response = await async_client.post("/articles", json=article_data, headers=headers)
+    article_response = await async_client.post("/api/articles", json=article_data, headers=headers)
     assert article_response.status_code == 201
 
     article_slug = article_response.json()["article"]["slug"]
@@ -46,7 +46,7 @@ async def test_comment_crud_flow(async_client: AsyncClient):
     comment_data = {"comment": {"body": "This is a test comment on the article"}}
 
     comment_response = await async_client.post(
-        f"/articles/{article_slug}/comments", json=comment_data, headers=headers
+        f"/api/articles/{article_slug}/comments", json=comment_data, headers=headers
     )
     assert comment_response.status_code == 201
 
@@ -56,7 +56,7 @@ async def test_comment_crud_flow(async_client: AsyncClient):
     comment_id = created_comment["id"]
 
     # Get comments for article
-    get_comments_response = await async_client.get(f"/articles/{article_slug}/comments")
+    get_comments_response = await async_client.get(f"/api/articles/{article_slug}/comments")
     assert get_comments_response.status_code == 200
 
     comments_data = get_comments_response.json()
@@ -65,12 +65,12 @@ async def test_comment_crud_flow(async_client: AsyncClient):
 
     # Delete comment
     delete_response = await async_client.delete(
-        f"/articles/{article_slug}/comments/{comment_id}", headers=headers
+        f"/api/articles/{article_slug}/comments/{comment_id}", headers=headers
     )
     assert delete_response.status_code == 204
 
     # Verify comment is deleted
-    final_comments_response = await async_client.get(f"/articles/{article_slug}/comments")
+    final_comments_response = await async_client.get(f"/api/articles/{article_slug}/comments")
     assert final_comments_response.status_code == 200
 
     final_comments_data = final_comments_response.json()

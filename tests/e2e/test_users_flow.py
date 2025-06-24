@@ -72,7 +72,7 @@ async def test_get_current_user_success(async_client: AsyncClient, user_factory)
     assert login_resp.status_code == 200
     token = login_resp.json()["user"]["token"]
     headers = {"Authorization": f"Token {token}"}
-    resp = await async_client.get("/user", headers=headers)
+    resp = await async_client.get("/api/user", headers=headers)
     assert resp.status_code == 200
     user_data = resp.json()["user"]
     assert user_data["username"] == username
@@ -95,7 +95,7 @@ async def test_update_user_success(async_client: AsyncClient, user_factory) -> N
     login_resp = await login_user(async_client, email, password)
     token = login_resp.json()["user"]["token"]
     update_resp = await async_client.put(
-        "/user",
+        "/api/user",
         headers={"Authorization": f"Token {token}"},
         json={"user": {"bio": "e2e bio", "image": "http://img.com/e2e.png"}},
     )

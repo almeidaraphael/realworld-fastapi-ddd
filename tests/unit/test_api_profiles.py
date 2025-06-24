@@ -15,14 +15,14 @@ async def test_get_profile_not_found(async_client, override_auth):
         "app.service_layer.profiles.services.get_profile_by_username",
         new=AsyncMock(side_effect=Exception("Profile not found")),
     ):
-        response = await async_client.get("/profiles/nonexistentuser")
+        response = await async_client.get("/api/profiles/nonexistentuser")
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
 async def test_get_profile_unauthenticated(async_client):
-    response = await async_client.get("/profiles/nonexistentuser")
+    response = await async_client.get("/api/profiles/nonexistentuser")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
@@ -38,7 +38,7 @@ async def test_get_profile_success(async_client, override_auth, fake_user):
         "app.api.profiles.get_profile_by_username",
         new=AsyncMock(return_value=fake_profile),
     ):
-        response = await async_client.get(f"/profiles/{fake_user.username}")
+        response = await async_client.get(f"/api/profiles/{fake_user.username}")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "profile" in data
@@ -71,7 +71,7 @@ async def test_unfollow_profile_success(async_client, override_auth, fake_user, 
         "app.api.profiles.unfollow_user",
         new=AsyncMock(return_value=fake_profile),
     ):
-        response = await async_client.delete(f"/profiles/{fake_user.username}/follow")
+        response = await async_client.delete(f"/api/profiles/{fake_user.username}/follow")
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert "profile" in data
@@ -85,7 +85,7 @@ async def test_unfollow_profile_not_found(async_client, override_auth, fake_user
         "app.service_layer.profiles.services.unfollow_user",
         new=AsyncMock(side_effect=Exception("Profile not found")),
     ):
-        response = await async_client.delete("/profiles/nonexistentuser/follow")
+        response = await async_client.delete("/api/profiles/nonexistentuser/follow")
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert "not found" in response.json()["detail"].lower()
 
@@ -96,12 +96,12 @@ async def test_unfollow_profile_cannot_unfollow_self(async_client, override_auth
         "app.api.profiles.unfollow_user",
         new=AsyncMock(side_effect=CannotFollowYourselfError("Cannot unfollow yourself")),
     ):
-        response = await async_client.delete(f"/profiles/{fake_user.username}/follow")
+        response = await async_client.delete(f"/api/profiles/{fake_user.username}/follow")
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "cannot unfollow yourself" in response.json()["detail"].lower()
 
 
 @pytest.mark.asyncio
 async def test_unfollow_profile_unauthenticated(async_client):
-    response = await async_client.delete("/profiles/nonexistentuser/follow")
+    response = await async_client.delete("/api/profiles/nonexistentuser/follow")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

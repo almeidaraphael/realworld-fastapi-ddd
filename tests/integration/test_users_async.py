@@ -15,7 +15,7 @@ async def test_create_user_success(async_client: AsyncClient, user_factory) -> N
     user = user_factory.build()
     password = "testpassasync"
     response = await async_client.post(
-        "/users",
+        "/api/users",
         json={
             "user": {
                 "username": user.username,
@@ -90,7 +90,7 @@ async def test_get_current_user_success(async_client: AsyncClient) -> None:
     await register_user(async_client, "meuser", "me@example.com", "mepass")
     login_resp = await login_user(async_client, "me@example.com", "mepass")
     token = login_resp.json()["user"]["token"]
-    resp = await async_client.get("/user", headers={"Authorization": f"Token {token}"})
+    resp = await async_client.get("/api/user", headers={"Authorization": f"Token {token}"})
     assert resp.status_code == 200
     data = resp.json()
     assert data["user"]["email"] == "me@example.com"
@@ -104,7 +104,7 @@ async def test_get_current_user_unauthorized(async_client: AsyncClient) -> None:
     WHEN requesting /user
     THEN the API returns 401
     """
-    resp = await async_client.get("/user")
+    resp = await async_client.get("/api/user")
     assert resp.status_code == 401
 
 
@@ -119,7 +119,7 @@ async def test_update_user_success(async_client: AsyncClient) -> None:
     login_resp = await login_user(async_client, "update@example.com", "updatepass")
     token = login_resp.json()["user"]["token"]
     resp = await async_client.put(
-        "/user",
+        "/api/user",
         headers={"Authorization": f"Token {token}"},
         json={"user": {"bio": "new bio", "image": "http://img.com/new.png"}},
     )
@@ -141,7 +141,7 @@ async def test_update_user_partial(async_client: AsyncClient) -> None:
     login_resp = await login_user(async_client, "partial@example.com", "partialpass")
     token = login_resp.json()["user"]["token"]
     resp = await async_client.put(
-        "/user",
+        "/api/user",
         headers={"Authorization": f"Token {token}"},
         json={"user": {"username": "partialuser2"}},
     )
@@ -159,7 +159,7 @@ async def test_update_user_unauthorized(async_client: AsyncClient) -> None:
     THEN the API returns 401
     """
     resp = await async_client.put(
-        "/user",
+        "/api/user",
         json={"user": {"bio": "should fail"}},
     )
     assert resp.status_code == 401
@@ -174,7 +174,7 @@ async def test_get_current_user_invalid_token_payload(async_client: AsyncClient)
     """
     token = create_access_token({"foo": "bar"})
     resp = await async_client.get(
-        "/user",
+        "/api/user",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 401
@@ -190,7 +190,7 @@ async def test_get_current_user_user_not_found(async_client: AsyncClient) -> Non
     """
     token = create_access_token({"sub": "ghost@example.com"})
     resp = await async_client.get(
-        "/user",
+        "/api/user",
         headers={"Authorization": f"Token {token}"},
     )
     assert resp.status_code == 401

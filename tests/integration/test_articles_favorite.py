@@ -37,7 +37,7 @@ async def test_favorite_unfavorite_article_workflow(
     )
     payload = {"article": article.model_dump()}
 
-    response = await async_client.post("/articles", json=payload, headers=headers)
+    response = await async_client.post("/api/articles", json=payload, headers=headers)
     assert response.status_code == 201
     created_article = response.json()["article"]
     slug = created_article["slug"]
@@ -47,14 +47,14 @@ async def test_favorite_unfavorite_article_workflow(
     assert created_article["favoritesCount"] == 0
 
     # Favorite the article
-    response = await async_client.post(f"/articles/{slug}/favorite", headers=headers)
+    response = await async_client.post(f"/api/articles/{slug}/favorite", headers=headers)
     assert response.status_code == 200
     favorited_article = response.json()["article"]
     assert favorited_article["favorited"] is True
     assert favorited_article["favoritesCount"] == 1
 
     # Unfavorite the article
-    response = await async_client.delete(f"/articles/{slug}/favorite", headers=headers)
+    response = await async_client.delete(f"/api/articles/{slug}/favorite", headers=headers)
     assert response.status_code == 200
     unfavorited_article = response.json()["article"]
     assert unfavorited_article["favorited"] is False
@@ -85,7 +85,7 @@ async def test_favorite_nonexistent_article(
     headers = {"Authorization": f"Token {token}"}
 
     # Try to favorite non-existent article
-    response = await async_client.post("/articles/nonexistent-slug/favorite", headers=headers)
+    response = await async_client.post("/api/articles/nonexistent-slug/favorite", headers=headers)
     assert response.status_code == 404
 
 
@@ -96,5 +96,5 @@ async def test_favorite_without_authentication(async_client: AsyncClient) -> Non
     WHEN trying to favorite an article
     THEN should get a 401 error
     """
-    response = await async_client.post("/articles/some-slug/favorite")
+    response = await async_client.post("/api/articles/some-slug/favorite")
     assert response.status_code == 401

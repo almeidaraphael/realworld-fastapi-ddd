@@ -36,7 +36,7 @@ async def test_create_comment_success(
     article_payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=article_payload,
     )
@@ -47,7 +47,7 @@ async def test_create_comment_success(
     comment_payload = {"comment": {"body": "This is a test comment on the article"}}
 
     comment_resp = await async_client.post(
-        f"/articles/{slug}/comments",
+        f"/api/articles/{slug}/comments",
         headers={"Authorization": f"Token {token}"},
         json=comment_payload,
     )
@@ -73,7 +73,7 @@ async def test_create_comment_unauthorized(async_client: AsyncClient):
     comment_payload = {"comment": {"body": "This should fail"}}
 
     resp = await async_client.post(
-        "/articles/test-slug/comments",
+        "/api/articles/test-slug/comments",
         json=comment_payload,
     )
 
@@ -102,7 +102,7 @@ async def test_create_comment_article_not_found(
     comment_payload = {"comment": {"body": "Comment on non-existent article"}}
 
     resp = await async_client.post(
-        "/articles/non-existent-slug/comments",
+        "/api/articles/non-existent-slug/comments",
         headers={"Authorization": f"Token {token}"},
         json=comment_payload,
     )
@@ -146,7 +146,7 @@ async def test_get_comments_success(
     article_payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token1}"},
         json=article_payload,
     )
@@ -158,19 +158,19 @@ async def test_get_comments_success(
     comment2_payload = {"comment": {"body": "Second comment by user2"}}
 
     await async_client.post(
-        f"/articles/{slug}/comments",
+        f"/api/articles/{slug}/comments",
         headers={"Authorization": f"Token {token1}"},
         json=comment1_payload,
     )
 
     await async_client.post(
-        f"/articles/{slug}/comments",
+        f"/api/articles/{slug}/comments",
         headers={"Authorization": f"Token {token2}"},
         json=comment2_payload,
     )
 
     # Get comments
-    get_resp = await async_client.get(f"/articles/{slug}/comments")
+    get_resp = await async_client.get(f"/api/articles/{slug}/comments")
     assert get_resp.status_code == 200
 
     data = get_resp.json()
@@ -192,7 +192,7 @@ async def test_get_comments_article_not_found(async_client: AsyncClient):
     WHEN requesting GET /articles/{slug}/comments
     THEN the API returns 404
     """
-    resp = await async_client.get("/articles/non-existent-slug/comments")
+    resp = await async_client.get("/api/articles/non-existent-slug/comments")
     assert resp.status_code == 404
 
 
@@ -226,7 +226,7 @@ async def test_delete_comment_success(
     article_payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=article_payload,
     )
@@ -237,7 +237,7 @@ async def test_delete_comment_success(
     comment_payload = {"comment": {"body": "Comment to be deleted"}}
 
     comment_resp = await async_client.post(
-        f"/articles/{slug}/comments",
+        f"/api/articles/{slug}/comments",
         headers={"Authorization": f"Token {token}"},
         json=comment_payload,
     )
@@ -246,13 +246,13 @@ async def test_delete_comment_success(
 
     # Delete comment
     delete_resp = await async_client.delete(
-        f"/articles/{slug}/comments/{comment_id}",
+        f"/api/articles/{slug}/comments/{comment_id}",
         headers={"Authorization": f"Token {token}"},
     )
     assert delete_resp.status_code == 204
 
     # Verify comment is deleted - get comments should return empty list
-    get_resp = await async_client.get(f"/articles/{slug}/comments")
+    get_resp = await async_client.get(f"/api/articles/{slug}/comments")
     assert get_resp.status_code == 200
     data = get_resp.json()
     assert len(data["comments"]) == 0
@@ -294,7 +294,7 @@ async def test_delete_comment_unauthorized(
     article_payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token1}"},
         json=article_payload,
     )
@@ -304,7 +304,7 @@ async def test_delete_comment_unauthorized(
     comment_payload = {"comment": {"body": "Comment by user1"}}
 
     comment_resp = await async_client.post(
-        f"/articles/{slug}/comments",
+        f"/api/articles/{slug}/comments",
         headers={"Authorization": f"Token {token1}"},
         json=comment_payload,
     )
@@ -313,7 +313,7 @@ async def test_delete_comment_unauthorized(
 
     # User2 tries to delete user1's comment
     delete_resp = await async_client.delete(
-        f"/articles/{slug}/comments/{comment_id}",
+        f"/api/articles/{slug}/comments/{comment_id}",
         headers={"Authorization": f"Token {token2}"},
     )
     assert delete_resp.status_code == 403
@@ -349,7 +349,7 @@ async def test_delete_comment_not_found(
     article_payload = {"article": article.model_dump()}
 
     create_resp = await async_client.post(
-        "/articles",
+        "/api/articles",
         headers={"Authorization": f"Token {token}"},
         json=article_payload,
     )
@@ -358,7 +358,7 @@ async def test_delete_comment_not_found(
 
     # Try to delete non-existent comment
     delete_resp = await async_client.delete(
-        f"/articles/{slug}/comments/999999",
+        f"/api/articles/{slug}/comments/999999",
         headers={"Authorization": f"Token {token}"},
     )
     assert delete_resp.status_code == 404
