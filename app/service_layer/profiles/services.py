@@ -16,16 +16,21 @@ logger = logging.getLogger(__name__)
 
 
 async def get_profile_by_username(username: str, current_user: str | None = None) -> ProfileRead:
+    """Get a user profile with optional following status."""
     async with AsyncUnitOfWork() as uow:
-        repo = UserRepository(uow.session)
-        user = await repo.get_by_username_or_email(username, "")
+        user_repo = UserRepository(uow.session)
+        user = await user_repo.get_by_username_or_email(username, "")
         if not user:
             raise ProfileNotFoundError("Profile not found")
+
         following = False
         if current_user and current_user != username:
-            follower = await repo.get_by_username_or_email(current_user, "")
+            follower = await user_repo.get_by_username_or_email(current_user, "")
             if follower and follower.id is not None and user.id is not None:
-                following = await repo.is_following(follower_id=follower.id, followee_id=user.id)
+                following = await user_repo.is_following(
+                    follower_id=follower.id, followee_id=user.id
+                )
+
         return ProfileRead(
             username=user.username,
             bio=user.bio or USER_DEFAULT_BIO,
@@ -35,17 +40,22 @@ async def get_profile_by_username(username: str, current_user: str | None = None
 
 
 async def follow_user(username: str, follower_username: str) -> ProfileRead:
+    """Follow a user."""
     async with AsyncUnitOfWork() as uow:
-        repo = UserRepository(uow.session)
-        user = await repo.get_by_username_or_email(username, "")
-        follower = await repo.get_by_username_or_email(follower_username, "")
+        user_repo = UserRepository(uow.session)
+
+        user = await user_repo.get_by_username_or_email(username, "")
+        follower = await user_repo.get_by_username_or_email(follower_username, "")
+
         if not user or not follower:
             raise ProfileNotFoundError("Profile or follower not found")
         if user.username == follower.username:
             raise CannotFollowYourselfError("Cannot follow yourself")
         if follower.id is None or user.id is None:
             raise UserOrFollowerIdMissingError("User or follower has no id")
-        await repo.follow_user(follower_id=follower.id, followee_id=user.id)
+
+        await user_repo.follow_user(follower_id=follower.id, followee_id=user.id)
+
         return ProfileRead(
             username=user.username,
             bio=user.bio or USER_DEFAULT_BIO,
@@ -55,17 +65,22 @@ async def follow_user(username: str, follower_username: str) -> ProfileRead:
 
 
 async def unfollow_user(username: str, follower_username: str) -> ProfileRead:
+    """Unfollow a user."""
     async with AsyncUnitOfWork() as uow:
-        repo = UserRepository(uow.session)
-        user = await repo.get_by_username_or_email(username, "")
-        follower = await repo.get_by_username_or_email(follower_username, "")
+        user_repo = UserRepository(uow.session)
+
+        user = await user_repo.get_by_username_or_email(username, "")
+        follower = await user_repo.get_by_username_or_email(follower_username, "")
+
         if not user or not follower:
             raise ProfileNotFoundError("Profile or follower not found")
         if user.username == follower.username:
             raise CannotFollowYourselfError("Cannot unfollow yourself")
         if follower.id is None or user.id is None:
             raise UserOrFollowerIdMissingError("User or follower has no id")
-        await repo.unfollow_user(follower_id=follower.id, followee_id=user.id)
+
+        await user_repo.unfollow_user(follower_id=follower.id, followee_id=user.id)
+
         return ProfileRead(
             username=user.username,
             bio=user.bio or USER_DEFAULT_BIO,

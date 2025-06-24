@@ -34,8 +34,7 @@ async def create_user(user_req: NewUserRequest) -> UserRead:
             hashed_password=hashed_password,
         )
         await repo.add(user)
-        await uow.session.commit()
-        await uow.session.refresh(user)
+        # UoW will commit automatically on successful exit
         return UserRead.model_validate(user.__dict__)
 
 
@@ -70,6 +69,5 @@ async def update_user(email: str, user_update_req: UserUpdateRequest) -> UserRea
             update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
         for key, value in update_data.items():
             setattr(user, key, value)
-        await uow.session.commit()
-        await uow.session.refresh(user)
+        # UoW will commit automatically on successful exit
         return UserRead.model_validate(user.__dict__)

@@ -38,6 +38,12 @@ def get_async_engine() -> AsyncEngine:
         echo=app_settings.debug,
         pool_pre_ping=True,
         isolation_level="READ COMMITTED",
+        # Async-specific optimizations
+        pool_recycle=3600,  # Recycle connections after 1 hour
+        pool_size=20,  # Base pool size
+        max_overflow=0,  # Don't allow overflow connections in async context
+        # Ensure proper async handling
+        future=True,
     )
     _engine_url = url
     return _engine_instance

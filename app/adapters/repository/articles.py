@@ -1,10 +1,11 @@
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters.repository.base import AsyncRepository
 from app.domain.articles.orm import Article, ArticleFavorite, article_favorite_table, article_table
 
 
-class ArticleRepository:
+class ArticleRepository(AsyncRepository[Article]):
     """
     Repository for article data access operations.
 
@@ -14,23 +15,28 @@ class ArticleRepository:
 
     def __init__(self, session: AsyncSession):
         """Initialize repository with database session."""
-        self.session = session
+        super().__init__(session)
+
+    async def get_by_id(self, article_id: int) -> Article | None:
+        """Get an article by its ID."""
+        statement = select(Article).where(article_table.c.id == article_id)
+        return await self._execute_scalar_query(statement)
 
     async def add(self, article: Article) -> Article:
         """Add a new article to the database."""
         self.session.add(article)
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(article)
         return article
 
     async def get_by_slug(self, slug: str) -> Article | None:
         """Get an article by its slug."""
-        result = await self.session.execute(select(Article).where(article_table.c.slug == slug))
-        return result.scalars().first()
+        statement = select(Article).where(article_table.c.slug == slug)
+        return await self._execute_scalar_query(statement)
 
     async def update(self, article: Article) -> Article:
         """Update an existing article in the database."""
-        await self.session.commit()
+        await self.session.flush()
         await self.session.refresh(article)
         return article
 
@@ -166,7 +172,7 @@ class ArticleRepository:
     async def delete(self, article: Article) -> None:
         """Delete an article from the database."""
         await self.session.delete(article)
-        await self.session.commit()
+        await self.session.flush()
 
     async def add_favorite(self, article_id: int, user_id: int) -> None:
         """Add an article to user's favorites."""
@@ -182,7 +188,7 @@ class ArticleRepository:
         if existing.scalars().first() is None:
             favorite = ArticleFavorite(article_id=article_id, user_id=user_id)
             self.session.add(favorite)
-            await self.session.commit()
+            await self.session.flush()
 
     async def remove_favorite(self, article_id: int, user_id: int) -> None:
         """Remove an article from user's favorites."""
@@ -197,4 +203,4 @@ class ArticleRepository:
         favorite = result.scalars().first()
         if favorite:
             await self.session.delete(favorite)
-            await self.session.commit()
+            await self.session.flush()

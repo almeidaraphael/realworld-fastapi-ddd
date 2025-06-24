@@ -43,7 +43,7 @@ async def test_add_follower_creates_relationship(async_session: AsyncSession) ->
     followee_id = followee.id
 
     repo = FollowerRepository(async_session)
-    await repo.add(follower_id, followee_id)
+    await repo.add_relationship(follower_id, followee_id)
     result = await async_session.execute(
         select(Follower).where(
             and_(
@@ -89,8 +89,8 @@ async def test_add_follower_idempotent(async_session: AsyncSession) -> None:
     followee_id = followee.id
 
     repo = FollowerRepository(async_session)
-    await repo.add(follower_id, followee_id)
-    await repo.add(follower_id, followee_id)  # Should not raise or duplicate
+    await repo.add_relationship(follower_id, followee_id)
+    await repo.add_relationship(follower_id, followee_id)  # Should not raise or duplicate
     result = await async_session.execute(
         select(Follower).where(
             and_(
@@ -136,9 +136,9 @@ async def test_remove_follower_removes_relationship(async_session: AsyncSession)
     followee_id = followee.id
 
     repo = FollowerRepository(async_session)
-    await repo.add(follower_id, followee_id)
+    await repo.add_relationship(follower_id, followee_id)
     # Now remove
-    await repo.remove(follower_id, followee_id)
+    await repo.remove_relationship(follower_id, followee_id)
     result = await async_session.execute(
         select(Follower).where(
             and_(

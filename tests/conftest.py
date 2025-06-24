@@ -96,9 +96,13 @@ def user_read_factory() -> ModelFactory:
 
 @pytest_asyncio.fixture
 async def async_session() -> AsyncGenerator[AsyncSession, None]:
-    """Async SQLAlchemy session for database access in tests."""
+    """
+    Async SQLAlchemy session for database access in tests.
+
+    Configured with expire_on_commit=False for better test reliability.
+    """
     engine = get_async_engine()
-    async with AsyncSession(engine) as session:
+    async with AsyncSession(engine, expire_on_commit=False) as session:
         yield session
 
 
