@@ -1,6 +1,8 @@
 # @transactional() Decorator - Usage Guidelines
 
-> **📖 For complete transaction management overview, see [Transaction Management in README.md](README.md#transaction-management)**  
+> 📖 **[← Back to README](../../README.md)** | **[📋 Documentation Index](../README.md)**
+
+> **📖 For complete transaction management overview, see [Transaction Management in README.md](../../README.md#automatic-transaction-management)**  
 > This document provides specific guidelines for using the `@transactional()` decorator in service layer functions.
 
 ## Quick Reference

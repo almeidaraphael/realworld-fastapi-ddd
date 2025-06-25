@@ -1,12 +1,14 @@
 # Service Layer Transaction Management - Advanced Guide
 
-> **📖 For quick overview and common usage patterns, see [Transaction Management in README.md](README.md#transaction-management)**  
-> **⚡ For @transactional() decorator guidelines, see [TRANSACTION_DECORATOR_GUIDELINES.md](TRANSACTION_DECORATOR_GUIDELINES.md)**  
+> 📖 **[← Back to README](../../README.md)** | **[📋 Documentation Index](../README.md)**
+
+> **📖 For quick overview and common usage patterns, see [Transaction Management in README.md](../../README.md#automatic-transaction-management)**  
+> **⚡ For @transactional() decorator guidelines, see [TRANSACTION_DECORATOR_GUIDELINES.md](../guides/TRANSACTION_DECORATOR_GUIDELINES.md)**  
 > This document provides advanced transaction management patterns, detailed implementation examples, and migration guidance.
 
 ## Overview
 
-This detailed guide covers advanced transaction management patterns and implementation details. For basic usage, refer to the main [README.md](README.md#transaction-management) documentation.
+This detailed guide covers advanced transaction management patterns and implementation details. For basic usage, refer to the main [README.md](../../README.md#automatic-transaction-management) documentation.
 
 The transaction management system provides several key improvements:
 

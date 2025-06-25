@@ -1,5 +1,7 @@
 # Error Code Standardization Guidelines
 
+> 📖 **[← Back to README](../../README.md)** | **[📋 Documentation Index](../README.md)**
+
 ## 🎯 **Error Code Strategy**
 
 ### **Core Principle: Semantic Error Codes**

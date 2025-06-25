@@ -1,10 +1,10 @@
 # Exception Handling Guide
 
-> 📖 **[← Back to README](README.md)** | **[📋 Documentation Index](README.md#-documentation-index)**
+> 📖 **[← Back to README](../../README.md)** | **[📋 Documentation Index](../README.md)**
 
 This guide provides comprehensive documentation for implementing standardized exception handling in the FastAPI RealWorld application. It covers the complete exception handling system, from design principles to practical implementation patterns.
 
-> **💡 Note**: This document provides the complete exception handling guide. For a quick overview and integration with other architectural concepts, see the [Exception Handling](README.md#exception-handling) section in README.md.
+> **💡 Note**: This document provides the complete exception handling guide. For a quick overview and integration with other architectural concepts, see the [Exception Handling](../../README.md#standardized-exception-handling) section in README.md.
 
 ## Table of Contents
 
@@ -1137,4 +1137,4 @@ async def create_user(user_data: UserCreateRequest) -> User:
 
 ---
 
-> 📖 **[← Back to README](README.md)** | **[📋 Documentation Index](README.md#-documentation-index)**
+> 📖 **[← Back to README](../../README.md)** | **[📋 Documentation Index](../README.md)**
