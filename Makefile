@@ -20,6 +20,32 @@ test-coverage:
 test-log:
 	poetry run pytest --disable-warnings > pytest_logs.txt 2>&1
 
+# Test categorization (by directory)
+test-unit:
+	poetry run pytest tests/unit/
+test-integration:
+	poetry run pytest tests/integration/
+test-e2e:
+	poetry run pytest tests/e2e/
+
+# Test categorization (by markers - for when tests have markers)
+test-unit-marked:
+	poetry run pytest -m unit
+test-integration-marked:
+	poetry run pytest -m integration
+test-e2e-marked:
+	poetry run pytest -m e2e
+
+# Comprehensive test and validation workflow
+test-all: test validate-diagrams lint
+	@echo "All tests and validations completed successfully!"
+
+# Validate diagrams (calls diagrams/Makefile)
+validate-diagrams:
+	@echo "Validating architecture diagrams..."
+	@cd diagrams && make validate-docker
+	@echo "Diagram validation completed!"
+
 # === Formatting & Linting ===
 lint:
 	poetry run ruff format .

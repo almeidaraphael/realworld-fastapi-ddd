@@ -1,0 +1,93 @@
+@startuml database-schema
+!theme plain
+title FastAPI RealWorld - Database Schema
+
+' Styling for better readability
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam class {
+    BackgroundColor White
+    BorderColor Black
+    FontSize 10
+    HeaderFontSize 12
+}
+
+' Main entities
+entity "user" as user {
+    **id** : INTEGER <<PK>> (autoincrement)
+    --
+    **username** : STRING <<UK>> (NOT NULL)
+    **email** : STRING <<UK>> (NOT NULL)
+    **hashed_password** : STRING (NOT NULL)
+    bio : TEXT (default: "")
+    image : STRING (default: "")
+    --
+    Indexes:
+    • ix_user_username (unique)
+    • ix_user_email (unique)
+}
+
+entity "article" as article {
+    **id** : INTEGER <<PK>>
+    --
+    **slug** : STRING <<UK>> (NOT NULL)
+    **title** : STRING (NOT NULL)
+    **description** : STRING (NOT NULL)
+    **body** : TEXT (NOT NULL)
+    **tagList** : ARRAY(STRING) (default: [])
+    **author_id** : INTEGER <<FK>> (NOT NULL)
+    created_at : STRING/DATETIME (⚠️ inconsistent)
+    updated_at : STRING/DATETIME (⚠️ inconsistent)
+}
+
+entity "comment" as comment {
+    **id** : INTEGER <<PK>>
+    --
+    **body** : STRING (NOT NULL)
+    **article_id** : INTEGER <<FK>> (NOT NULL)
+    **author_id** : INTEGER <<FK>> (NOT NULL)
+    created_at : STRING (nullable)
+    updated_at : STRING (nullable)
+}
+
+' Junction tables for many-to-many relationships
+entity "follower" as follower {
+    **follower_id** : INTEGER <<PK,FK>>
+    **followee_id** : INTEGER <<PK,FK>>
+    --
+    Composite PK: (follower_id, followee_id)
+}
+
+entity "article_favorite" as favorite {
+    **user_id** : INTEGER <<PK,FK>>
+    **article_id** : INTEGER <<PK,FK>>
+    --
+    Composite PK: (user_id, article_id)
+}
+
+' Relationships with proper cardinality
+user ||--o{ article : "authors (1:N)\nuser.id → article.author_id"
+user ||--o{ comment : "authors (1:N)\nuser.id → comment.author_id"
+article ||--o{ comment : "has (1:N)\narticle.id → comment.article_id"
+
+' Many-to-many relationships
+user ||--o{ follower : "followers"
+user ||--o{ follower : "following"
+(user, follower) .. (user, follower) : "user.id ↔ follower.follower_id\nuser.id ↔ follower.followee_id"
+
+user ||--o{ favorite : "favorites"
+article ||--o{ favorite : "favorited_by"
+(user, favorite) .. (article, favorite) : "user.id ↔ favorite.user_id\narticle.id ↔ favorite.article_id"
+
+' Cascade delete notes
+note top of comment : Cascade DELETE:\n• When article deleted\n• When user (author) deleted
+
+note top of follower : Self-referencing:\nUsers follow other users
+
+note top of favorite : Junction table:\nUser favorites for articles
+
+note bottom of article : Tags stored as PostgreSQL\nARRAY(STRING) - denormalized\nfor performance
+
+note bottom of article : ⚠️ Schema Inconsistency:\ncreated_at/updated_at\ndefined as STRING in migrations\nbut expected as DATETIME in ORM
+
+@enduml

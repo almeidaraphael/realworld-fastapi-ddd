@@ -1,0 +1,23 @@
+@startuml c4-container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+' Improve text legibility
+skinparam defaultFontSize 12
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram - FastAPI RealWorld Demo
+
+Person(user, "User", "A user of the RealWorld blogging platform")
+
+System_Boundary(realworld_system, "RealWorld API System") {
+    Container(web_app, "FastAPI Web Application", "FastAPI + Python 3.12", "Provides RealWorld API endpoints via JSON/HTTPS")
+    ContainerDb(database, "PostgreSQL Database", "PostgreSQL", "Stores user accounts, articles, comments, tags, and relationships")
+}
+
+System_Ext(client_app, "Client Applications", "Frontend applications consuming the API")
+
+Rel(user, client_app, "Uses", "HTTPS")
+Rel(client_app, web_app, "Makes API calls to", "JSON/HTTPS")
+Rel(web_app, database, "Reads from and writes to", "SQLAlchemy/asyncpg")
+
+@enduml

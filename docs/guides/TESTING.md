@@ -52,6 +52,16 @@ python_functions = test_*
 
 ## Test Categories
 
+Our testing strategy follows the test pyramid pattern, balancing thorough coverage with fast execution:
+
+![Testing Architecture](../../diagrams/testing/testing-architecture.svg)
+
+The diagram shows the relationship between different test types and their coverage:
+- **Unit Tests**: Fast, isolated tests with mocked dependencies
+- **Integration Tests**: Multi-layer tests with real database
+- **E2E Tests**: Complete user workflow tests
+- **Test Infrastructure**: Shared fixtures, factories, and utilities
+
 ### 1. Unit Tests (`tests/unit/`)
 
 Test individual components in isolation with mocked dependencies.

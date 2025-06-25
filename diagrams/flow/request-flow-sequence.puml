@@ -1,0 +1,108 @@
+@startuml request-flow-sequence
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Sequence.puml
+
+' Improve text legibility
+skinparam defaultFontSize 11
+skinparam participantFontSize 10
+skinparam noteFontSize 9
+title Request Flow Sequence - Article Creation
+
+actor "Client App" as Client
+participant "API Router" as API
+participant "Auth Middleware" as Auth
+participant "Service Layer" as Service
+participant "Domain Layer" as Domain
+participant "Unit of Work" as UoW
+participant "Repository" as Repo
+database "PostgreSQL" as DB
+participant "Event Bus" as Events
+
+note over Client, Events: Article Creation Flow
+
+Client -> API: POST /articles\n{"article": {"title": "...", "body": "..."}}
+activate API
+
+API -> Auth: Validate JWT Token
+activate Auth
+Auth -> Auth: Extract user from token
+Auth --> API: User authenticated
+deactivate Auth
+
+API -> API: Validate request schema
+API -> Service: create_article(data, user)
+activate Service
+
+note over Service: @transactional() decorator
+Service -> UoW: Begin transaction
+activate UoW
+
+Service -> Domain: Create Article entity
+activate Domain
+Domain -> Domain: Generate slug
+Domain -> Domain: Validate business rules
+Domain --> Service: Article entity
+deactivate Domain
+
+Service -> Repo: save_article(article)
+activate Repo
+Repo -> DB: INSERT article
+activate DB
+DB --> Repo: Article saved
+deactivate DB
+Repo --> Service: Article with ID
+deactivate Repo
+
+Service -> Events: Publish ArticleCreated event
+activate Events
+Events -> Events: Notify event handlers
+Events --> Service: Event published
+deactivate Events
+
+UoW -> UoW: Commit transaction
+UoW --> Service: Transaction committed
+deactivate UoW
+Service --> API: Article response
+deactivate Service
+
+API -> API: Convert to response schema
+API --> Client: 201 Created\n{"article": {"id": 1, "title": "...", ...}}
+deactivate API
+
+note over Client, Events: Error Handling Flows
+
+Client -> API: POST /articles (invalid data)
+activate API
+API -> API: Schema validation fails
+API --> Client: 422 Validation Error
+deactivate API
+
+Client -> API: POST /articles (unauthorized)
+activate API
+API -> Auth: Validate JWT Token
+activate Auth
+Auth --> API: Authentication failed
+deactivate Auth
+API --> Client: 401 Unauthorized
+deactivate API
+
+Client -> API: POST /articles (business rule violation)
+activate API
+API -> Service: create_article(data, user)
+activate Service
+Service -> UoW: Begin transaction
+activate UoW
+Service -> Domain: Create Article entity
+activate Domain
+Domain -> Domain: Validate business rules
+Domain --> Service: ArticleAlreadyExistsError
+deactivate Domain
+UoW -> UoW: Rollback transaction
+UoW --> Service: Transaction rolled back
+deactivate UoW
+Service --> API: Business exception
+deactivate Service
+API -> API: Convert to HTTP exception
+API --> Client: 409 Conflict
+deactivate API
+
+@enduml

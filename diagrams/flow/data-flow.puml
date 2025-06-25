@@ -1,0 +1,86 @@
+@startuml data-flow
+' Clean flow diagram using simple PlantUML syntax
+
+' Improve text legibility
+skinparam defaultFontSize 12
+skinparam rectangleFontSize 11
+skinparam noteFontSize 10
+left to right direction
+
+title Data Flow Diagram - Request Processing Pipeline
+
+rectangle "Client Layer" as client #E3F2FD {
+  rectangle "User\nHTTP Request" as user
+}
+
+rectangle "API Layer" as api #E8F5E8 {
+  rectangle "1. API Router\nReceive request" as router
+  rectangle "2. Auth Middleware\nValidate JWT" as auth  
+  rectangle "3. Request Validation\nCheck schema" as validation
+}
+
+rectangle "Service Layer" as service #FFF3E0 {
+  rectangle "4. Application Service\nOrchestrate use case" as app_service
+  rectangle "5. Transaction Manager\n@transactional decorator" as transaction
+}
+
+rectangle "Domain Layer" as domain #E0F2F1 {
+  rectangle "6. Domain Model\nApply business logic" as domain_model
+  rectangle "Domain Events\n(optional)" as events
+}
+
+rectangle "Infrastructure Layer" as infra #FCE4EC {
+  rectangle "7. Repository\nData access abstraction" as repository
+  rectangle "8. ORM Session\nSQLAlchemy operations" as orm
+}
+
+rectangle "Database Layer" as db #F3E5F5 {
+  rectangle "9. PostgreSQL\nExecute SQL query" as database
+}
+
+' Request flow (left to right)
+user --> router : "HTTP Request\nJSON/HTTPS"
+router --> auth : "Authenticate"
+auth --> validation : "Validate"
+validation --> app_service : "Process"
+app_service --> transaction : "Begin Transaction"
+transaction --> domain_model : "Business Logic"
+domain_model --> events : "Publish Events\n(if applicable)"
+domain_model --> repository : "Data Access"
+repository --> orm : "ORM Operations"
+orm --> database : "SQL Query"
+
+' Response flow (right to left)
+database --> orm : "Result Set"
+orm --> repository : "Mapped Entities"
+repository --> domain_model : "Domain Models"
+domain_model --> app_service : "Business Objects"
+app_service --> validation : "Response Mapping"
+validation --> router : "JSON Response"
+router --> user : "HTTP Response"
+
+note bottom of transaction
+  **Transaction Management**
+  • Auto-begin on service entry
+  • Auto-commit on success
+  • Auto-rollback on exception
+  • Session cleanup
+end note
+
+note bottom of events
+  **Event Publishing**
+  • User registration
+  • Article publishing  
+  • Comment creation
+  • Follow/unfollow
+end note
+
+note bottom of validation
+  **Validation Pipeline**
+  • Schema validation
+  • Business rules
+  • Type safety
+  • Error handling
+end note
+
+@enduml

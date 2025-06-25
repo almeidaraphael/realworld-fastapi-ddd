@@ -1,0 +1,23 @@
+@startuml c4-context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+' Improve text legibility
+skinparam defaultFontSize 12
+LAYOUT_WITH_LEGEND()
+
+title Context Diagram - FastAPI RealWorld Demo
+
+Person(user, "User", "A user of the RealWorld blogging platform")
+Person(admin, "Admin", "System administrator monitoring the application")
+
+System(realworld_api, "RealWorld API", "FastAPI-based blogging platform following RealWorld specification")
+
+System_Ext(client_app, "Client Applications", "Frontend applications (React, Vue, Angular, etc.) consuming the API")
+System_Ext(monitoring, "Monitoring Tools", "Application monitoring and logging systems")
+
+Rel(user, client_app, "Uses", "HTTPS")
+Rel(client_app, realworld_api, "Makes API calls", "HTTPS/JSON")
+Rel(admin, monitoring, "Monitors", "HTTPS")
+Rel(monitoring, realworld_api, "Collects metrics", "HTTP")
+
+@enduml

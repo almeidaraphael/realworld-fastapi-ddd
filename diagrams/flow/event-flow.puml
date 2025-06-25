@@ -1,0 +1,131 @@
+@startuml event-flow
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master
+!includeurl ICONURL/font-awesome-5/database.puml
+!includeurl ICONURL/font-awesome-5/server.puml
+!includeurl ICONURL/font-awesome-5/bell.puml
+
+title Event-Driven Architecture - Event Flow
+
+' Define styling
+skinparam backgroundColor #FFFFFF
+skinparam packageStyle rectangle
+skinparam component {
+    BackgroundColor #E1F5FE
+    BorderColor #0277BD
+}
+
+' Service Layer - Event Publishers
+package "Service Layer" as service_layer {
+    [Article Service] as article_svc
+    [User Service] as user_svc
+    [Comment Service] as comment_svc
+    [Tag Service] as tag_svc
+}
+
+' Event Bus - Central Dispatcher
+package "Event Bus System" as event_bus_pkg {
+    [Event Bus\n(Shared Instance)] as event_bus
+    [Persistent Event Bus\n(Enhanced)] as persistent_bus
+}
+
+' Domain Events
+package "Domain Events" as domain_events {
+    [Article Events] as article_events
+    [User Events] as user_events
+    [Comment Events] as comment_events
+    [Tag Events] as tag_events
+}
+
+' Event Handlers
+package "Event Handlers" as handlers {
+    package "Domain Handlers" as domain_handlers {
+        [Article Handlers\n(Sync + Async)] as article_handlers
+        [User Handlers\n(Registration, Login)] as user_handlers
+        [Comment Handlers\n(Notifications)] as comment_handlers
+    }
+    
+    package "Cross-Domain Handlers" as cross_handlers {
+        [Recommendation Engine] as recommendations
+        [Feed Updates] as feeds
+        [Notification System] as notifications
+        [Data Cleanup] as cleanup
+    }
+    
+    package "System Handlers" as system_handlers {
+        [Analytics Handlers] as analytics
+        [Security Handlers] as security
+        [Moderation Handlers] as moderation
+        [Maintenance Handlers] as maintenance
+    }
+}
+
+' External Systems affected by events
+package "External Systems" as external {
+    [Search Index] as search
+    [Email Service] as email
+    [Metrics Storage] as metrics
+    [Audit Log] as audit
+}
+
+' Event Flow - Publications
+article_svc --> event_bus : publishes\nArticleCreated\nArticleUpdated\nArticleDeleted\nArticleFavorited
+user_svc --> event_bus : publishes\nUserRegistered\nUserLoggedIn\nUserProfileUpdated\nUserFollowed
+comment_svc --> event_bus : publishes\nArticleCommentAdded\nCommentDeleted
+tag_svc --> event_bus : publishes\nTagCreated\nTagUsed\nPopularTagDetected
+
+' Event Bus Distribution
+event_bus --> article_events : routes article\nevents
+event_bus --> user_events : routes user\nevents
+event_bus --> comment_events : routes comment\nevents
+event_bus --> tag_events : routes tag\nevents
+
+' Domain Event Handling
+article_events --> article_handlers : triggers\nsync & async handlers
+user_events --> user_handlers : triggers\nregistration/login handlers
+comment_events --> comment_handlers : triggers\nnotification handlers
+
+' Cross-Domain Event Handling
+article_events --> recommendations : update article\nrecommendations
+user_events --> feeds : update personalized\nfeeds
+comment_events --> notifications : notify article\nauthor
+article_events --> cleanup : cleanup related\ndata on delete
+
+' System Event Handling
+article_events --> analytics : track article\nmetrics
+user_events --> security : monitor login\nactivity
+comment_events --> moderation : detect spam/\ninappropriate content
+article_events --> maintenance : database\noptimization
+
+' Handler Effects on External Systems
+analytics --> metrics : store performance\nand usage data
+security --> audit : log security\nevents
+notifications --> email : send email\nnotifications
+article_handlers --> search : update search\nindex
+moderation --> audit : log moderation\nactions
+
+' Optional Persistent Bus
+event_bus ..> persistent_bus : optionally\nuses for auditing
+
+' Notes for clarification
+note top of event_bus : **Event Bus Features:**\n• Type-safe event dispatching\n• Sync and async handler support\n• Error isolation (handler failures don't affect flow)\n• Sequential handler execution\n• Global singleton instance
+
+note top of domain_events : **Event Types:**\n• ArticleCreated, ArticleUpdated, ArticleDeleted\n• UserRegistered, UserLoggedIn, UserFollowed\n• ArticleCommentAdded, CommentDeleted\n• TagCreated, TagUsed, PopularTagDetected
+
+note bottom of cross_handlers : **Cross-Cutting Concerns:**\n• Loose coupling between domains\n• Automatic feed updates\n• Recommendation engine updates\n• Cleanup operations
+
+note right of system_handlers : **System Events:**\n• Analytics (views, searches, performance)\n• Security (login attempts, suspicious activity)\n• Moderation (content flagging, spam detection)\n• Maintenance (cleanup, constraint violations)
+
+' Transaction boundary note
+note as transaction_note
+**Transaction Context:**
+Events published within @transactional() 
+decorator - if transaction fails, 
+events are not processed
+end note
+
+service_layer .. transaction_note
+transaction_note .. event_bus
+
+@enduml

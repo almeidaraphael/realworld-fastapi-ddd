@@ -1,0 +1,118 @@
+@startuml testing-architecture
+
+' Improve text legibility
+skinparam defaultFontSize 12
+skinparam rectangleFontSize 11
+skinparam noteFontSize 10
+left to right direction
+
+title Testing Architecture - Test Pyramid & Infrastructure
+
+' Test Pyramid Visualization
+rectangle "Test Pyramid" as pyramid {
+  rectangle "E2E Tests\n(Few)" as e2e #FFE6E6 {
+    rectangle "User Registration Flow\nArticle CRUD Workflows\nAuthentication Flows\nComment System\nFollowing System" as e2e_examples
+  }
+  
+  rectangle "Integration Tests\n(Some)" as integration #FFF3E0 {
+    rectangle "API + Database\nService + Repository\nMulti-layer Testing\nJWT Authentication\nTransaction Management" as integration_examples
+  }
+  
+  rectangle "Unit Tests\n(Many)" as unit #E8F5E8 {
+    rectangle "Domain Logic\nService Methods\nRepository Queries\nValidation Rules\nBusiness Rules" as unit_examples
+  }
+}
+
+' Test Infrastructure
+rectangle "Test Infrastructure" as infra #E3F2FD {
+  rectangle "pytest Framework\nAsync Support\nFixtures & Factories" as pytest_core
+  rectangle "Test Database\nFunction-scoped Cleanup\nIsolated Transactions" as test_db
+  rectangle "Mock Infrastructure\npytest-mock\nTest Doubles" as mocks
+  rectangle "Data Factories\nPydantic Factories\nRealistic Test Data" as factories
+  rectangle "HTTP Testing\nhttpx.AsyncClient\nASGI Transport" as http_testing
+}
+
+' Application Under Test
+rectangle "Application Layers" as app #F3E5F5 {
+  rectangle "API Layer\nFastAPI Routers\nHTTP Endpoints" as api
+  rectangle "Service Layer\nUse Case Orchestration\nTransaction Management" as service
+  rectangle "Domain Layer\nBusiness Logic\nDomain Models" as domain
+  rectangle "Infrastructure\nRepositories\nORM & Database" as infrastructure
+}
+
+' Test Type Relationships
+e2e --> api : "Full HTTP\nWorkflow Testing"
+e2e --> test_db : "Real Database\nPersistence"
+
+integration --> api : "HTTP + Service\nTesting"
+integration --> service : "Multi-layer\nIntegration"
+integration --> test_db : "Real Database\nTransactions"
+
+unit --> service : "Business Logic\nTesting"
+unit --> domain : "Domain Rules\nTesting"
+unit --> mocks : "Isolated\nTesting"
+
+' Infrastructure Usage
+e2e --> pytest_core : "Framework"
+integration --> pytest_core : "Framework"
+unit --> pytest_core : "Framework"
+
+e2e --> factories : "Test Data"
+integration --> factories : "Test Data"
+unit --> factories : "Test Data"
+
+e2e --> http_testing : "HTTP Client"
+integration --> http_testing : "HTTP Client"
+
+' Visual Test Pyramid Layout
+e2e -[hidden]down-> integration
+integration -[hidden]down-> unit
+
+note top of e2e
+  **End-to-End Tests**
+  • Complete user workflows
+  • Real HTTP requests & responses
+  • Full database persistence  
+  • Authentication & authorization
+  • Slowest execution (seconds)
+  • Highest confidence
+end note
+
+note top of integration
+  **Integration Tests**
+  • Multi-layer component testing
+  • Real database transactions
+  • Service coordination testing
+  • Moderate execution (milliseconds)
+  • Good coverage of interactions
+end note
+
+note top of unit
+  **Unit Tests**
+  • Individual component isolation
+  • Mocked external dependencies
+  • Business logic validation
+  • Fastest execution (microseconds)
+  • High test count, focused scope
+end note
+
+note right of infra
+  **Test Infrastructure Features**
+  • Function-scoped DB cleanup
+  • Async test client setup
+  • Fixture dependency injection
+  • Realistic data generation
+  • Mock external services
+  • Event loop management
+end note
+
+note bottom of app
+  **Testing Strategy**
+  • API: HTTP interface testing
+  • Service: Business logic testing  
+  • Domain: Pure function testing
+  • Infrastructure: Data access testing
+  • Clear test boundaries per layer
+end note
+
+@enduml

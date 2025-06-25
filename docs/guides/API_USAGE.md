@@ -35,7 +35,19 @@ The FastAPI RealWorld Demo implements the complete [RealWorld API specification]
 
 ## Authentication
 
-The API uses JWT (JSON Web Token) based authentication.
+The API uses JWT (JSON Web Token) based authentication with bcrypt password hashing for security.
+
+### Authentication Flow
+
+The following diagram illustrates the complete authentication process:
+
+![Authentication Flow Diagram](../../diagrams/flow/authentication-flow.svg)
+
+**Key Security Features:**
+- **bcrypt Password Hashing**: Secure password storage with automatic salt generation
+- **JWT Token-Based Authentication**: Stateless authentication with configurable expiration
+- **Middleware Protection**: Automatic token validation and user injection
+- **Consistent Error Handling**: Standardized authentication error responses
 
 ### Registration
 

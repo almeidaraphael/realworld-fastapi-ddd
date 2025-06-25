@@ -1,0 +1,197 @@
+@startuml domain-model
+
+' Improve text legibility
+skinparam defaultFontSize 12
+skinparam classFontSize 11
+skinparam noteFontSize 10
+left to right direction
+
+title Domain Model - RealWorld Demo
+
+package "Domain Aggregates" #E8F5E8 {
+  class User {
+    +id: int
+    +username: str
+    +email: Email
+    +password: HashedPassword
+    +bio: str
+    +image: str
+    --
+    +register()
+    +authenticate()
+    +update_profile()
+    +follow_user()
+    +unfollow_user()
+  }
+
+  class Article {
+    +id: int
+    +slug: Slug
+    +title: str
+    +description: str
+    +body: str
+    +created_at: datetime
+    +updated_at: datetime
+    +favorited: bool
+    +favorites_count: int
+    --
+    +create()
+    +update()
+    +add_to_favorites()
+    +remove_from_favorites()
+    +add_tag()
+    +remove_tag()
+  }
+
+  class Comment {
+    +id: int
+    +body: str
+    +created_at: datetime
+    +updated_at: datetime
+    --
+    +create()
+    +delete()
+  }
+
+  class Tag {
+    +name: str
+    --
+    +create_if_not_exists()
+  }
+
+  class Profile {
+    +username: str
+    +bio: str
+    +image: str
+    +following: bool
+    --
+    +get_profile()
+    +follow()
+    +unfollow()
+  }
+}
+
+package "Value Objects" #FFF3E0 {
+  class Email <<value object>> {
+    +value: str
+    --
+    +validate()
+    +normalize()
+  }
+
+  class Slug <<value object>> {
+    +value: str
+    --
+    +generate_from_title()
+    +ensure_unique()
+  }
+
+  class HashedPassword <<value object>> {
+    +hash: str
+    --
+    +hash_password()
+    +verify_password()
+  }
+}
+
+package "Domain Services" #E0F2F1 {
+  class AuthenticationService {
+    +authenticate_user()
+    +generate_jwt_token()
+    +verify_jwt_token()
+  }
+
+  class FeedService {
+    +get_global_feed()
+    +get_user_feed()
+    +apply_pagination()
+  }
+
+  class SlugService {
+    +generate_unique_slug()
+    +check_slug_availability()
+  }
+}
+
+package "Domain Events" #FCE4EC {
+  abstract class DomainEvent {
+    +event_id: str
+    +timestamp: datetime
+    +aggregate_id: str
+  }
+
+  class UserRegistered extends DomainEvent {
+    +user_id: int
+    +username: str
+    +email: str
+  }
+
+  class ArticleCreated extends DomainEvent {
+    +article_id: int
+    +title: str
+    +slug: str
+    +author_id: int
+  }
+
+  class CommentCreated extends DomainEvent {
+    +comment_id: int
+    +article_id: int
+    +author_id: int
+  }
+}
+
+' Entity Relationships
+User ||--o{ Article : "authors"
+User ||--o{ Comment : "authors"
+User }o--o{ User : "follows"
+User }o--o{ Article : "favorites"
+Article ||--o{ Comment : "has"
+Article }o--o{ Tag : "tagged with"
+
+' Value Object Composition
+User *-- Email
+User *-- HashedPassword
+Article *-- Slug
+
+' Domain Service Dependencies
+User ..> AuthenticationService : uses
+Article ..> FeedService : uses
+Article ..> SlugService : uses
+
+' Event Publishing
+User ..> UserRegistered : publishes
+Article ..> ArticleCreated : publishes
+Comment ..> CommentCreated : publishes
+
+note top of User
+  **User Aggregate Root**
+  - Manages user identity
+  - Handles authentication
+  - Controls following relationships
+  - Manages article favorites
+end note
+
+note top of Article
+  **Article Aggregate Root**
+  - Manages content lifecycle
+  - Handles favoriting logic
+  - Controls tag associations
+  - Manages comments
+end note
+
+note right of "Value Objects"
+  **Immutable Value Objects**
+  - Email: validation & normalization
+  - Slug: URL-safe identifiers
+  - HashedPassword: secure storage
+end note
+
+note right of "Domain Events"
+  **Event-Driven Communication**
+  - Cross-aggregate coordination
+  - Audit trail generation
+  - External system integration
+  - Cache invalidation triggers
+end note
+
+@enduml

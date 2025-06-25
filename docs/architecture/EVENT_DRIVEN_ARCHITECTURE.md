@@ -22,6 +22,21 @@ The system organizes events into clear categories:
 - **System Events** (`app/events/system/`): Cross-cutting concerns (analytics, security, maintenance, moderation)
 - **Infrastructure Events**: Event bus implementations and persistence
 
+## 📊 Request and Event Flow
+
+The following diagram illustrates how requests flow through the application layers and how events are published and handled:
+
+![Data Flow Diagram](../../diagrams/flow/data-flow.svg)
+
+This diagram shows:
+- **Request Pipeline**: HTTP → Auth → Validation → Service → Domain → Repository → Database
+- **Response Pipeline**: Database → Repository → Service → Response Mapping → HTTP  
+- **Event Publishing**: Domain events published after successful operations
+- **Transaction Management**: Automatic UoW pattern with rollback on failures
+
+For detailed request flow interactions, see the [Request Flow Sequence Diagram](../../diagrams/flow/request-flow-sequence.svg).
+For event-specific flows, see the [Event Flow Diagram](../../diagrams/flow/event-flow.svg).
+
 ## 🔄 Core Patterns
 
 ### Publishing Events

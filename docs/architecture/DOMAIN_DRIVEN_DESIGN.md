@@ -29,6 +29,8 @@ Domain-Driven Design is a software development approach that focuses on creating
 
 The application follows a clean architecture with four distinct layers:
 
+![Component Architecture](../../diagrams/architecture/c4-component.svg)
+
 ```
 ┌─────────────────────────────────────┐
 │           API Layer                 │  ← HTTP interface, request/response handling
@@ -209,6 +211,34 @@ class UserRepository:
 ```
 
 ## Domain Structure
+
+The domain layer contains the core business entities and their relationships:
+
+![Domain Model Diagram](../../diagrams/domain/domain-model.svg)
+
+This diagram shows the key domain aggregates and their relationships:
+- **User**: Central entity with authentication and profile management
+- **Article**: Blog posts with slug-based identification
+- **Comment**: Comments on articles with nested threading capability
+- **Tag**: Categorization system for articles
+- **Follower**: User-to-user following relationships
+- **ArticleFavorite**: User preferences for articles
+
+### Database Implementation
+
+The domain model is implemented in PostgreSQL with the following database schema:
+
+![Database Schema Diagram](../../diagrams/domain/database-schema.svg)
+
+**Key Database Features:**
+- **5 Core Tables**: `user`, `article`, `comment`, `follower`, `article_favorite`
+- **Foreign Key Relationships**: Proper referential integrity with cascade deletes
+- **Many-to-Many Relationships**: Junction tables for followers and favorites
+- **PostgreSQL Arrays**: Tags stored as `ARRAY(STRING)` for performance
+- **Unique Constraints**: Usernames, emails, and article slugs enforced at DB level
+- **Composite Primary Keys**: Used in junction tables for efficient queries
+
+⚠️ **Note**: There's a schema inconsistency where timestamps are defined as `STRING` in migrations but expected as `DATETIME` in ORM models.
 
 Each domain follows a consistent structure:
 

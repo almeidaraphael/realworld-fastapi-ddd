@@ -39,16 +39,17 @@ Start here to get up and running quickly:
 ### 🏗️ For Architects & Technical Leads
 Understand the system design and architecture:
 
-1. **[🏛️ Domain-Driven Design](architecture/DOMAIN_DRIVEN_DESIGN.md)** - DDD architecture patterns
-2. **[📡 Event-Driven Architecture](architecture/EVENT_DRIVEN_ARCHITECTURE.md)** - Event system design
-3. **[⚠️ Exception Handling](architecture/EXCEPTION_HANDLING.md)** - Standardized error handling
-4. **[🔄 Transaction Management](architecture/TRANSACTION_MANAGEMENT.md)** - Advanced transaction patterns
+1. **[📊 Architecture Diagrams](../diagrams/README.md)** - Complete C4 model visualization and system overview
+2. **[🏛️ Domain-Driven Design](architecture/DOMAIN_DRIVEN_DESIGN.md)** - DDD architecture patterns with domain model
+3. **[📡 Event-Driven Architecture](architecture/EVENT_DRIVEN_ARCHITECTURE.md)** - Event system design with data flow diagrams
+4. **[⚠️ Exception Handling](architecture/EXCEPTION_HANDLING.md)** - Standardized error handling
+5. **[🔄 Transaction Management](architecture/TRANSACTION_MANAGEMENT.md)** - Advanced transaction patterns
 
 ### 👩‍💻 For Developers
 Development workflow and coding standards:
 
 1. **[Development Workflow](development/DEVELOPMENT_WORKFLOW.md)** - Complete dev process
-2. **[Testing Guide](guides/TESTING.md)** - Testing strategies
+2. **[Testing Guide](guides/TESTING.md)** - Testing strategies with test pyramid architecture
 3. **[Commit Guidelines](development/COMMIT_GUIDELINES.md)** - Git conventions
 4. **[Transaction Decorator Guide](guides/TRANSACTION_DECORATOR_GUIDELINES.md)** - Service layer patterns
 

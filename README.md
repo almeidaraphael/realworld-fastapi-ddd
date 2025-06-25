@@ -24,21 +24,24 @@ make run
 
 ## 📖 Documentation Hub
 
+### 📊 Visual Architecture
+- **[Architecture Diagrams](diagrams/README.md)** - Complete C4 model visualization with PlantUML diagrams
+- **[System Overview](docs/PROJECT_OVERVIEW.md)** - Technology stack with architectural diagrams
+
 ### 🏃‍♂️ Getting Started
 - **[Development Quickstart](docs/guides/DEVELOPMENT_QUICKSTART.md)** - 5-minute setup
 - **[Getting Started Guide](docs/guides/GETTING_STARTED.md)** - Detailed setup with troubleshooting
 - **[API Usage Guide](docs/guides/API_USAGE.md)** - Complete API reference with examples
 
 ### 🏗️ Architecture & Design
-- **[Project Overview](docs/PROJECT_OVERVIEW.md)** - Technology stack and design principles
-- **[Domain-Driven Design](docs/architecture/DOMAIN_DRIVEN_DESIGN.md)** - DDD architecture patterns
-- **[Event-Driven Architecture](docs/architecture/EVENT_DRIVEN_ARCHITECTURE.md)** - Event system design
+- **[Domain-Driven Design](docs/architecture/DOMAIN_DRIVEN_DESIGN.md)** - DDD architecture patterns with domain model
+- **[Event-Driven Architecture](docs/architecture/EVENT_DRIVEN_ARCHITECTURE.md)** - Event system design with request flow diagrams
 - **[Exception Handling](docs/architecture/EXCEPTION_HANDLING.md)** - Standardized error handling
 - **[Transaction Management](docs/architecture/TRANSACTION_MANAGEMENT.md)** - Database transaction patterns
 
 ### 🛠️ Development & Testing
 - **[Development Workflow](docs/development/DEVELOPMENT_WORKFLOW.md)** - Complete development process
-- **[Testing Guide](docs/guides/TESTING.md)** - Comprehensive testing strategies
+- **[Testing Guide](docs/guides/TESTING.md)** - Comprehensive testing strategies with test pyramid architecture
 - **[Commit Guidelines](docs/development/COMMIT_GUIDELINES.md)** - Git commit conventions
 
 ### 🚀 Deployment & Production
@@ -138,6 +141,8 @@ shared_event_bus.publish(ArticleCreated(
 
 ## 🏗️ Project Structure
 
+The codebase follows a clean, layered architecture:
+
 ```
 app/
 ├── api/           # 🌐 HTTP endpoints (FastAPI routers)
@@ -152,6 +157,8 @@ tests/
 ├── integration/   # Database and API tests
 └── e2e/          # Complete workflow tests
 ```
+
+📊 **Visual Architecture**: See the [Component Diagram](diagrams/architecture/c4-component.svg) for detailed layer relationships and [Architecture Diagrams](diagrams/README.md) for the complete system visualization.
 
 ## 🔗 API Documentation
 

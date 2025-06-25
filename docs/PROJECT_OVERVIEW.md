@@ -40,6 +40,32 @@ The FastAPI RealWorld Demo is a **development-focused reference implementation**
 - **Development Best Practices**: Comprehensive testing, structured logging, and deployment-ready code
 - **RealWorld Compliance**: Full implementation of the RealWorld API specification
 
+## 🏗️ Architecture Overview
+
+The FastAPI RealWorld Demo follows a clean, layered architecture based on Domain-Driven Design principles:
+
+### System Context
+![System Context Diagram](../diagrams/architecture/c4-context.svg)
+
+The system serves multiple client applications (web, mobile, desktop) through a unified REST API, with external monitoring and analytics integrations.
+
+### High-Level Architecture
+![Container Diagram](../diagrams/architecture/c4-container.svg)
+
+The application consists of two main containers:
+- **FastAPI Web Application**: The core application built with Python 3.12 and FastAPI
+- **PostgreSQL Database**: Persistent data storage with full ACID compliance
+
+### Internal Component Structure
+![Component Diagram](../diagrams/architecture/c4-component.svg)
+
+The FastAPI application is organized into distinct layers:
+- **API Layer**: HTTP endpoints and request/response handling
+- **Service Layer**: Business use cases and transaction orchestration
+- **Domain Layer**: Core business logic and entities
+- **Infrastructure Layer**: Data access and external system integration
+- **Shared Components**: Cross-cutting concerns (events, JWT, transactions)
+
 ## 🛠️ Technology Stack
 
 ### Core Framework

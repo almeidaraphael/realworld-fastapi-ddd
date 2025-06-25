@@ -1,0 +1,154 @@
+@startuml authentication-flow
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Sequence.puml
+
+' Improve text legibility
+skinparam defaultFontSize 11
+skinparam participantFontSize 10
+skinparam noteFontSize 9
+title JWT Authentication Flow - FastAPI RealWorld
+
+actor "Client App" as Client
+participant "API Router" as API
+participant "Auth Middleware" as Middleware
+participant "JWT Utils" as JWT
+participant "User Service" as Service
+participant "User Repository" as Repo
+database "PostgreSQL" as DB
+
+== User Registration ==
+
+Client -> API: POST /api/users\n{"user": {"username": "...", "email": "...", "password": "..."}}
+activate API
+
+API -> API: Validate request schema
+API -> Service: create_user(user_data)
+activate Service
+
+Service -> Service: Hash password with bcrypt
+Service -> Repo: save_user(user_data)
+activate Repo
+Repo -> DB: INSERT INTO users
+DB --> Repo: User created with ID
+Repo --> Service: User entity
+deactivate Repo
+
+Service -> JWT: create_access_token(user_id)
+activate JWT
+JWT -> JWT: Generate JWT with:\n• user_id in payload\n• expiration time\n• secret key signing
+JWT --> Service: JWT token
+deactivate JWT
+
+Service --> API: UserResponse with token
+deactivate Service
+API --> Client: 201 Created\n{"user": {"email": "...", "token": "eyJ...", ...}}
+deactivate API
+
+== User Login ==
+
+Client -> API: POST /api/users/login\n{"user": {"email": "...", "password": "..."}}
+activate API
+
+API -> API: Validate request schema
+API -> Service: authenticate_user(email, password)
+activate Service
+
+Service -> Repo: get_user_by_email(email)
+activate Repo
+Repo -> DB: SELECT * FROM users WHERE email = ?
+DB --> Repo: User data or None
+Repo --> Service: User entity or None
+deactivate Repo
+
+alt User found
+    Service -> Service: Verify password with bcrypt.checkpw()
+    alt Password valid
+        Service -> JWT: create_access_token(user_id)
+        activate JWT
+        JWT --> Service: JWT token
+        deactivate JWT
+        Service --> API: UserResponse with token
+    else Password invalid
+        Service --> API: InvalidCredentialsError
+        API -> API: Convert to 401 Unauthorized
+        API --> Client: 401 Unauthorized\n{"errors": {"body": ["Invalid credentials"]}}
+    end
+else User not found
+    Service --> API: InvalidCredentialsError
+    API -> API: Convert to 401 Unauthorized
+    API --> Client: 401 Unauthorized\n{"errors": {"body": ["Invalid credentials"]}}
+end
+deactivate Service
+deactivate API
+
+== Protected Endpoint Access ==
+
+Client -> API: GET /api/user\nAuthorization: Token eyJ...
+activate API
+
+API -> Middleware: Extract and validate token
+activate Middleware
+
+Middleware -> JWT: decode_access_token(token)
+activate JWT
+
+alt Token valid
+    JWT -> JWT: Verify signature with secret key
+    JWT -> JWT: Check expiration time
+    JWT --> Middleware: Decoded payload {user_id: 123}
+    deactivate JWT
+    
+    Middleware -> Repo: get_user_by_id(user_id)
+    activate Repo
+    Repo -> DB: SELECT * FROM users WHERE id = ?
+    DB --> Repo: User data
+    Repo --> Middleware: User entity
+    deactivate Repo
+    
+    Middleware --> API: User injected into request
+    deactivate Middleware
+    
+    API -> Service: get_current_user(user)
+    activate Service
+    Service --> API: UserResponse
+    deactivate Service
+    
+    API --> Client: 200 OK\n{"user": {"email": "...", "username": "...", ...}}
+    
+else Token invalid/expired
+    JWT --> Middleware: TokenDecodeError
+    deactivate JWT
+    Middleware --> API: 401 Unauthorized
+    deactivate Middleware
+    API --> Client: 401 Unauthorized\n{"errors": {"body": ["Token is invalid or expired"]}}
+    
+else Token missing
+    Middleware --> API: 401 Unauthorized
+    deactivate Middleware
+    API --> Client: 401 Unauthorized\n{"errors": {"body": ["Authorization header required"]}}
+end
+
+deactivate API
+
+== Token Refresh Pattern (Optional Implementation) ==
+
+note over Client, DB: **Note**: Current implementation uses long-lived tokens.\nRefresh token pattern could be implemented for enhanced security.
+
+Client -> API: POST /api/user/refresh\nAuthorization: Token eyJ...
+API -> Middleware: Validate current token
+alt Token valid but near expiration
+    Middleware -> JWT: create_access_token(user_id)
+    JWT --> API: New JWT token
+    API --> Client: 200 OK\n{"user": {"token": "eyJ...", ...}}
+else Token invalid
+    API --> Client: 401 Unauthorized
+end
+
+== Security Features ==
+
+note over JWT : **JWT Security Features:**\n• HS256 signature algorithm\n• Configurable expiration time\n• Secret key from environment\n• Stateless authentication\n• No server-side session storage
+
+note over Service : **Password Security:**\n• bcrypt hashing with salt\n• Automatic salt generation\n• Constant-time comparison\n• Protection against timing attacks
+
+note over Middleware : **Middleware Protection:**\n• Automatic token extraction\n• User injection into request context\n• Consistent error handling\n• Optional endpoints support
+
+@enduml

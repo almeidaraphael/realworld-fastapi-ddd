@@ -1,0 +1,99 @@
+@startuml c4-component
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+' Improve text legibility
+skinparam defaultFontSize 12
+skinparam componentFontSize 11
+skinparam noteFontSize 10
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - FastAPI Web Application
+
+Container(client_app, "Client Applications", "Frontend applications", "Makes API calls")
+ContainerDb(database, "PostgreSQL Database", "PostgreSQL", "Stores application data")
+
+Container_Boundary(web_app, "FastAPI Web Application") {
+    ' API Layer
+    Component(api_users, "Users API", "FastAPI Router", "Handles user registration, authentication, and profile management")
+    Component(api_articles, "Articles API", "FastAPI Router", "Handles article CRUD operations and feeds")
+    Component(api_profiles, "Profiles API", "FastAPI Router", "Handles user following and profile viewing")
+    Component(api_comments, "Comments API", "FastAPI Router", "Handles comment CRUD operations")
+    Component(api_tags, "Tags API", "FastAPI Router", "Handles tag listing and filtering")
+    Component(api_health, "Health Check API", "FastAPI Router", "Provides system health status")
+
+    ' Service Layer
+    Component(svc_auth, "Authentication Service", "Application Service", "Handles JWT token generation and validation")
+    Component(svc_users, "User Service", "Application Service", "Orchestrates user-related business operations")
+    Component(svc_articles, "Article Service", "Application Service", "Orchestrates article-related business operations")
+    Component(svc_profiles, "Profile Service", "Application Service", "Orchestrates user relationship operations")
+    Component(svc_comments, "Comment Service", "Application Service", "Orchestrates comment operations")
+    Component(svc_tags, "Tag Service", "Application Service", "Orchestrates tag operations")
+
+    ' Domain Layer
+    Component(domain_users, "Users Domain", "Domain Models & Logic", "User entities, value objects, and business rules")
+    Component(domain_articles, "Articles Domain", "Domain Models & Logic", "Article entities, favoriting logic, and business rules")
+    Component(domain_profiles, "Profiles Domain", "Domain Models & Logic", "Following relationships and profile logic")
+    Component(domain_comments, "Comments Domain", "Domain Models & Logic", "Comment entities and business rules")
+    Component(domain_tags, "Tags Domain", "Domain Models & Logic", "Tag entities and filtering logic")
+
+    ' Infrastructure Layer
+    Component(repo_users, "User Repository", "Repository Pattern", "Data access for user operations")
+    Component(repo_articles, "Article Repository", "Repository Pattern", "Data access for article operations")
+    Component(repo_profiles, "Profile Repository", "Repository Pattern", "Data access for profile operations")
+    Component(repo_comments, "Comment Repository", "Repository Pattern", "Data access for comment operations")
+    Component(repo_tags, "Tag Repository", "Repository Pattern", "Data access for tag operations")
+    Component(orm_engine, "ORM Engine", "SQLAlchemy", "Database connection and session management")
+
+    ' Shared Components
+    Component(event_bus, "Event Bus", "Event System", "Handles domain events and cross-cutting concerns")
+    Component(jwt_utils, "JWT Utilities", "Security", "JWT token encoding and decoding")
+    Component(transaction_mgr, "Transaction Manager", "UoW Pattern", "Manages database transactions")
+}
+
+' API to Service relationships
+Rel(client_app, api_users, "Uses", "JSON/HTTPS")
+Rel(client_app, api_articles, "Uses", "JSON/HTTPS")
+Rel(client_app, api_profiles, "Uses", "JSON/HTTPS")
+Rel(client_app, api_comments, "Uses", "JSON/HTTPS")
+Rel(client_app, api_tags, "Uses", "JSON/HTTPS")
+Rel(client_app, api_health, "Uses", "JSON/HTTPS")
+
+Rel(api_users, svc_auth, "Uses")
+Rel(api_users, svc_users, "Uses")
+Rel(api_articles, svc_articles, "Uses")
+Rel(api_profiles, svc_profiles, "Uses")
+Rel(api_comments, svc_comments, "Uses")
+Rel(api_tags, svc_tags, "Uses")
+
+' Service to Domain relationships
+Rel(svc_auth, domain_users, "Uses")
+Rel(svc_users, domain_users, "Uses")
+Rel(svc_articles, domain_articles, "Uses")
+Rel(svc_profiles, domain_profiles, "Uses")
+Rel(svc_comments, domain_comments, "Uses")
+Rel(svc_tags, domain_tags, "Uses")
+
+' Service to Repository relationships
+Rel(svc_users, repo_users, "Uses")
+Rel(svc_articles, repo_articles, "Uses")
+Rel(svc_profiles, repo_profiles, "Uses")
+Rel(svc_comments, repo_comments, "Uses")
+Rel(svc_tags, repo_tags, "Uses")
+
+' Repository to Database relationships
+Rel(repo_users, orm_engine, "Uses")
+Rel(repo_articles, orm_engine, "Uses")
+Rel(repo_profiles, orm_engine, "Uses")
+Rel(repo_comments, orm_engine, "Uses")
+Rel(repo_tags, orm_engine, "Uses")
+Rel(orm_engine, database, "Connects to", "asyncpg")
+
+' Cross-cutting concerns
+Rel(svc_auth, jwt_utils, "Uses")
+Rel(svc_users, transaction_mgr, "Uses")
+Rel(svc_articles, transaction_mgr, "Uses")
+Rel(svc_profiles, transaction_mgr, "Uses")
+Rel(svc_comments, transaction_mgr, "Uses")
+Rel(svc_tags, event_bus, "Uses")
+
+@enduml
