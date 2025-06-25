@@ -2,11 +2,9 @@
 End-to-end test for comment functionality.
 """
 
-import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
 async def test_comment_crud_flow(async_client: AsyncClient):
     """
     GIVEN a user and an article

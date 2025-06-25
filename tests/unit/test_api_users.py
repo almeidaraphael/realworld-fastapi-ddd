@@ -26,7 +26,6 @@ def build_fake_user(user_obj: User, token: str = "tok") -> UserWithToken:
     )
 
 
-@pytest.mark.asyncio
 async def test_create_user_returns_user_response(user_factory) -> None:
     """
     GIVEN a valid new user registration request to the API layer
@@ -47,7 +46,6 @@ async def test_create_user_returns_user_response(user_factory) -> None:
             assert resp.user.token == "tok"
 
 
-@pytest.mark.asyncio
 async def test_login_user_returns_user_response(user_factory) -> None:
     """
     GIVEN a valid user login request to the API layer
@@ -67,7 +65,6 @@ async def test_login_user_returns_user_response(user_factory) -> None:
             assert resp.user.token == "tok"
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_return_statement(user_factory) -> None:
     """
     GIVEN a valid user and token
@@ -100,7 +97,6 @@ async def test_get_current_user_return_statement(user_factory) -> None:
         assert user.token == "valid_token"
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_user_not_found_raises(user_factory) -> None:
     """
     GIVEN an invalid token that results in user not found

@@ -22,7 +22,6 @@ from app.shared.transaction import (
 class TestTransactionalContext:
     """Test the transactional_context context manager."""
 
-    @pytest.mark.asyncio
     async def test_transactional_context_successful_completion(self) -> None:
         """
         GIVEN a transactional context manager
@@ -39,7 +38,6 @@ class TestTransactionalContext:
             mock_uow_class.return_value.__aenter__.assert_awaited_once()
             mock_uow_class.return_value.__aexit__.assert_awaited_once_with(None, None, None)
 
-    @pytest.mark.asyncio
     async def test_transactional_context_with_exception(self) -> None:
         """
         GIVEN a transactional context manager
@@ -64,7 +62,6 @@ class TestTransactionalContext:
 class TestTransactionalDecorator:
     """Test the transactional decorator."""
 
-    @pytest.mark.asyncio
     async def test_transactional_decorator_success(self) -> None:
         """
         GIVEN a function decorated with @transactional()
@@ -86,7 +83,6 @@ class TestTransactionalDecorator:
             mock_uow_class.return_value.__aenter__.assert_awaited_once()
             mock_uow_class.return_value.__aexit__.assert_awaited_once_with(None, None, None)
 
-    @pytest.mark.asyncio
     async def test_transactional_decorator_with_exception_reraise_true(self) -> None:
         """
         GIVEN a function decorated with @transactional(reraise=True)
@@ -108,7 +104,6 @@ class TestTransactionalDecorator:
 
             mock_uow_class.return_value.__aenter__.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_transactional_decorator_with_exception_reraise_false(self) -> None:
         """
         GIVEN a function decorated with @transactional(reraise=False)
@@ -130,7 +125,6 @@ class TestTransactionalDecorator:
             assert result is None
             mock_uow_class.return_value.__aenter__.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_transactional_decorator_preserves_function_metadata(self) -> None:
         """
         GIVEN a function decorated with @transactional()
@@ -150,7 +144,6 @@ class TestTransactionalDecorator:
 class TestTransactionalService:
     """Test the TransactionalService base class."""
 
-    @pytest.mark.asyncio
     async def test_execute_in_transaction_success(self) -> None:
         """
         GIVEN a TransactionalService instance
@@ -171,7 +164,6 @@ class TestTransactionalService:
             assert result == "operation_result"
             mock_uow_class.return_value.__aenter__.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_execute_in_transaction_with_exception_reraise_true(self) -> None:
         """
         GIVEN a TransactionalService instance
@@ -191,7 +183,6 @@ class TestTransactionalService:
             with pytest.raises(ValueError, match="Operation failed"):
                 await service._execute_in_transaction(failing_operation, reraise=True)
 
-    @pytest.mark.asyncio
     async def test_execute_in_transaction_with_exception_reraise_false(self) -> None:
         """
         GIVEN a TransactionalService instance
@@ -212,7 +203,6 @@ class TestTransactionalService:
 
             assert result is None
 
-    @pytest.mark.asyncio
     async def test_transaction_context_manager(self) -> None:
         """
         GIVEN a TransactionalService instance
@@ -234,7 +224,6 @@ class TestTransactionalService:
 class TestWithTransaction:
     """Test the with_transaction convenience function."""
 
-    @pytest.mark.asyncio
     async def test_with_transaction_success(self) -> None:
         """
         GIVEN the with_transaction convenience function
@@ -254,7 +243,6 @@ class TestWithTransaction:
             assert result == "operation_result"
             mock_uow_class.return_value.__aenter__.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_with_transaction_with_exception(self) -> None:
         """
         GIVEN the with_transaction convenience function
@@ -277,7 +265,6 @@ class TestWithTransaction:
 class TestBulkTransactionManager:
     """Test the BulkTransactionManager class."""
 
-    @pytest.mark.asyncio
     async def test_bulk_transaction_manager_empty_operations(self) -> None:
         """
         GIVEN a BulkTransactionManager with no operations
@@ -288,7 +275,6 @@ class TestBulkTransactionManager:
         results = await manager.execute_all()
         assert results == []
 
-    @pytest.mark.asyncio
     async def test_bulk_transaction_manager_successful_operations(self) -> None:
         """
         GIVEN a BulkTransactionManager with multiple operations
@@ -315,7 +301,6 @@ class TestBulkTransactionManager:
             assert results == ["result1", "result2"]
             mock_uow_class.return_value.__aenter__.assert_awaited_once()
 
-    @pytest.mark.asyncio
     async def test_bulk_transaction_manager_with_failing_operation(self) -> None:
         """
         GIVEN a BulkTransactionManager with multiple operations where one fails

@@ -1,11 +1,9 @@
-import pytest
 from httpx import AsyncClient
 
 from app.shared.jwt import create_access_token
 from tests.helpers import login_user, register_user
 
 
-@pytest.mark.asyncio
 async def test_create_user_success(async_client: AsyncClient, user_factory) -> None:
     """
     GIVEN valid user data
@@ -32,7 +30,6 @@ async def test_create_user_success(async_client: AsyncClient, user_factory) -> N
     assert "token" in data["user"]
 
 
-@pytest.mark.asyncio
 async def test_create_user_duplicate(async_client: AsyncClient) -> None:
     """
     GIVEN a user already exists
@@ -51,7 +48,6 @@ async def test_create_user_duplicate(async_client: AsyncClient) -> None:
     assert "UserAlreadyExistsError" in data["detail"]
 
 
-@pytest.mark.asyncio
 async def test_login_user_success(async_client: AsyncClient) -> None:
     """
     GIVEN a registered user
@@ -67,7 +63,6 @@ async def test_login_user_success(async_client: AsyncClient) -> None:
     assert "token" in data["user"]
 
 
-@pytest.mark.asyncio
 async def test_login_user_invalid(async_client: AsyncClient) -> None:
     """
     GIVEN no user exists for credentials
@@ -81,7 +76,6 @@ async def test_login_user_invalid(async_client: AsyncClient) -> None:
     assert "INVALID_CREDENTIALS:" in data["detail"]
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_success(async_client: AsyncClient) -> None:
     """
     GIVEN a logged-in user
@@ -98,7 +92,6 @@ async def test_get_current_user_success(async_client: AsyncClient) -> None:
     assert data["user"]["username"] == "meuser"
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_unauthorized(async_client: AsyncClient) -> None:
     """
     GIVEN no authentication
@@ -109,7 +102,6 @@ async def test_get_current_user_unauthorized(async_client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_update_user_success(async_client: AsyncClient) -> None:
     """
     GIVEN a logged-in user
@@ -131,7 +123,6 @@ async def test_update_user_success(async_client: AsyncClient) -> None:
     assert data["user"]["email"] == "update@example.com"
 
 
-@pytest.mark.asyncio
 async def test_update_user_partial(async_client: AsyncClient) -> None:
     """
     GIVEN a logged-in user
@@ -152,7 +143,6 @@ async def test_update_user_partial(async_client: AsyncClient) -> None:
     assert data["user"]["email"] == "partial@example.com"
 
 
-@pytest.mark.asyncio
 async def test_update_user_unauthorized(async_client: AsyncClient) -> None:
     """
     GIVEN no authentication
@@ -166,7 +156,6 @@ async def test_update_user_unauthorized(async_client: AsyncClient) -> None:
     assert resp.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_invalid_token_payload(async_client: AsyncClient) -> None:
     """
     GIVEN a token missing 'sub' claim
@@ -182,7 +171,6 @@ async def test_get_current_user_invalid_token_payload(async_client: AsyncClient)
     assert resp.json()["detail"] == "INVALID_CREDENTIALS: Invalid authentication credentials"
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_user_not_found(async_client: AsyncClient) -> None:
     """
     GIVEN a token with valid 'sub' but user does not exist
@@ -198,7 +186,6 @@ async def test_get_current_user_user_not_found(async_client: AsyncClient) -> Non
     assert resp.json()["detail"] == "USER_NOT_FOUND: User not found"
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_missing_authorization_header(async_client: AsyncClient) -> None:
     """
     GIVEN no Authorization header
@@ -211,7 +198,6 @@ async def test_get_current_user_missing_authorization_header(async_client: Async
     assert "MISSING_TOKEN: Missing or invalid Authorization header" in data["detail"]
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_invalid_authorization_format(async_client: AsyncClient) -> None:
     """
     GIVEN invalid Authorization header format (not starting with 'Token ')
@@ -227,7 +213,6 @@ async def test_get_current_user_invalid_authorization_format(async_client: Async
     assert "MISSING_TOKEN: Missing or invalid Authorization header" in data["detail"]
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_empty_token(async_client: AsyncClient) -> None:
     """
     GIVEN empty token after 'Token ' prefix
@@ -243,7 +228,6 @@ async def test_get_current_user_empty_token(async_client: AsyncClient) -> None:
     assert "MISSING_TOKEN: Missing or invalid Authorization header" in data["detail"]
 
 
-@pytest.mark.asyncio
 async def test_update_user_with_user_not_found_error(async_client: AsyncClient) -> None:
     """
     GIVEN a valid token for a user that doesn't exist in database
@@ -253,12 +237,7 @@ async def test_update_user_with_user_not_found_error(async_client: AsyncClient) 
     # Create a token for a non-existent user
     token = create_access_token({"sub": "nonexistent@example.com"})
 
-    update_data = {
-        "user": {
-            "bio": "Updated bio",
-            "image": "https://example.com/new-image.jpg"
-        }
-    }
+    update_data = {"user": {"bio": "Updated bio", "image": "https://example.com/new-image.jpg"}}
 
     resp = await async_client.put(
         "/api/user",

@@ -1,7 +1,6 @@
 import uuid
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from fastapi import status
 
 from app.domain.profiles.exceptions import CannotFollowYourselfError
@@ -9,7 +8,6 @@ from app.domain.profiles.schemas import ProfileRead
 from app.domain.users.models import User
 
 
-@pytest.mark.asyncio
 async def test_get_profile_not_found(async_client, override_auth):
     with patch(
         "app.service_layer.profiles.services.get_profile_by_username",
@@ -20,13 +18,11 @@ async def test_get_profile_not_found(async_client, override_auth):
         assert "not found" in response.json()["detail"].lower()
 
 
-@pytest.mark.asyncio
 async def test_get_profile_unauthenticated(async_client):
     response = await async_client.get("/api/profiles/nonexistentuser")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-@pytest.mark.asyncio
 async def test_get_profile_success(async_client, override_auth, fake_user):
     fake_profile = ProfileRead(
         username=fake_user.username,
@@ -48,7 +44,6 @@ async def test_get_profile_success(async_client, override_auth, fake_user):
         assert data["profile"]["following"] is False
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_success(async_client, override_auth, fake_user, async_session):
     # Ensure the user exists in the DB with a unique email to avoid conflicts
     test_id = str(uuid.uuid4())[:8]
@@ -79,7 +74,6 @@ async def test_unfollow_profile_success(async_client, override_auth, fake_user, 
         assert data["profile"]["following"] is False
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_not_found(async_client, override_auth, fake_user):
     with patch(
         "app.service_layer.profiles.services.unfollow_user",
@@ -90,7 +84,6 @@ async def test_unfollow_profile_not_found(async_client, override_auth, fake_user
         assert "not found" in response.json()["detail"].lower()
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_cannot_unfollow_self(async_client, override_auth, fake_user):
     with patch(
         "app.api.profiles.unfollow_user",
@@ -101,7 +94,6 @@ async def test_unfollow_profile_cannot_unfollow_self(async_client, override_auth
         assert "cannot unfollow yourself" in response.json()["detail"].lower()
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_unauthenticated(async_client):
     response = await async_client.delete("/api/profiles/nonexistentuser/follow")
     assert response.status_code == status.HTTP_401_UNAUTHORIZED

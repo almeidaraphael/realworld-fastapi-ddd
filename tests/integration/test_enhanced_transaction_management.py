@@ -25,7 +25,6 @@ def create_test_user_data(suffix: str = "") -> UserCreate:
 class TestEnhancedTransactionManagement:
     """Test the enhanced transaction management in the service layer."""
 
-    @pytest.mark.asyncio
     async def test_create_user_with_enhanced_transaction_management(self) -> None:
         """
         GIVEN the enhanced user service with @transactional decorator
@@ -45,7 +44,6 @@ class TestEnhancedTransactionManagement:
         assert result.email == user_data.email
         assert result.id is not None
 
-    @pytest.mark.asyncio
     async def test_authenticate_user_with_enhanced_transaction_management(self) -> None:
         """
         GIVEN the enhanced user service with @transactional decorator
@@ -69,7 +67,6 @@ class TestEnhancedTransactionManagement:
         assert result.username == created_user.username
         assert result.email == created_user.email
 
-    @pytest.mark.asyncio
     async def test_safe_get_user_by_email_with_nonexistent_user(self) -> None:
         """
         GIVEN the enhanced get_user_by_email service with reraise=False
@@ -82,7 +79,6 @@ class TestEnhancedTransactionManagement:
         # Verify that it returns None instead of raising an exception
         assert result is None
 
-    @pytest.mark.asyncio
     async def test_transaction_rollback_on_exception(self) -> None:
         """
         GIVEN the enhanced user service with @transactional decorator
@@ -103,7 +99,6 @@ class TestEnhancedTransactionManagement:
         assert result is not None
         assert result.email == user_data.email
 
-    @pytest.mark.asyncio
     async def test_api_endpoint_with_enhanced_services(self, async_client: AsyncClient) -> None:
         """
         GIVEN the API endpoints using the enhanced services
@@ -140,7 +135,6 @@ class TestEnhancedTransactionManagement:
         assert response_data["user"]["email"] == "test4@example.com"
         assert "token" in response_data["user"]
 
-    @pytest.mark.asyncio
     async def test_concurrent_user_creation_with_transaction_management(self) -> None:
         """
         GIVEN the enhanced user service with @transactional decorator
@@ -167,7 +161,6 @@ class TestEnhancedTransactionManagement:
             assert user is not None
             assert user.email == user_data.email
 
-    @pytest.mark.asyncio
     async def test_service_backward_compatibility(self) -> None:
         """
         GIVEN both original and enhanced service functions
@@ -209,7 +202,6 @@ class TestEnhancedTransactionManagement:
         assert result_get_original is not None
         assert result_get_original.email == user_data.email
 
-    @pytest.mark.asyncio
     async def test_enhanced_vs_original_consistency(self) -> None:
         """
         GIVEN both enhanced and original service functions

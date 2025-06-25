@@ -13,19 +13,16 @@ from app.domain.profiles.exceptions import (
 from app.service_layer.profiles import services
 
 
-@pytest.mark.asyncio
 async def test_get_profile_by_username_not_found(patch_repo_profiles: Any) -> None:
     with pytest.raises(ProfileNotFoundError):
         await services.get_profile_by_username("nonexistent", None)
 
 
-@pytest.mark.asyncio
 async def test_follow_user_not_found(patch_repo_profiles: Any) -> None:
     with pytest.raises(ProfileNotFoundError):
         await services.follow_user("nonexistent", "follower")
 
 
-@pytest.mark.asyncio
 async def test_get_profile_by_username_following_true(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="target", following=False)
@@ -40,7 +37,6 @@ async def test_get_profile_by_username_following_true(mocker, patch_uow_profiles
     repo.is_following.assert_called_once_with(follower_id=2, followee_id=1)
 
 
-@pytest.mark.asyncio
 async def test_get_profile_by_username_same_user(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="same", following=False)
@@ -53,7 +49,6 @@ async def test_get_profile_by_username_same_user(mocker, patch_uow_profiles, use
     repo.is_following.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_get_profile_by_username_follower_not_found(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="target", following=False)
@@ -66,7 +61,6 @@ async def test_get_profile_by_username_follower_not_found(mocker, patch_uow_prof
     repo.is_following.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_follow_user_profile_not_found(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     repo.get_by_username_or_email = AsyncMock(side_effect=[None, user_factory.build()])
@@ -75,7 +69,6 @@ async def test_follow_user_profile_not_found(mocker, patch_uow_profiles, user_fa
         await services.follow_user("ghost", "follower")
 
 
-@pytest.mark.asyncio
 async def test_follow_user_follower_not_found(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     repo.get_by_username_or_email = AsyncMock(side_effect=[user_factory.build(), None])
@@ -84,7 +77,6 @@ async def test_follow_user_follower_not_found(mocker, patch_uow_profiles, user_f
         await services.follow_user("target", "ghost")
 
 
-@pytest.mark.asyncio
 async def test_follow_user_cannot_follow_self(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="same", following=False)
@@ -95,7 +87,6 @@ async def test_follow_user_cannot_follow_self(mocker, patch_uow_profiles, user_f
         await services.follow_user("same", "same")
 
 
-@pytest.mark.asyncio
 async def test_follow_user_missing_id(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="target", following=False)
@@ -108,7 +99,6 @@ async def test_follow_user_missing_id(mocker, patch_uow_profiles, user_factory):
         await services.follow_user("target", "follower")
 
 
-@pytest.mark.asyncio
 async def test_unfollow_user_success(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="target", following=True)
@@ -124,7 +114,6 @@ async def test_unfollow_user_success(mocker, patch_uow_profiles, user_factory):
     repo.unfollow_user.assert_called_once_with(follower_id=2, followee_id=1)
 
 
-@pytest.mark.asyncio
 async def test_unfollow_user_profile_not_found(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     repo.get_by_username_or_email = AsyncMock(side_effect=[None, user_factory.build()])
@@ -133,7 +122,6 @@ async def test_unfollow_user_profile_not_found(mocker, patch_uow_profiles, user_
         await services.unfollow_user("ghost", "follower")
 
 
-@pytest.mark.asyncio
 async def test_unfollow_user_follower_not_found(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     repo.get_by_username_or_email = AsyncMock(side_effect=[user_factory.build(), None])
@@ -142,7 +130,6 @@ async def test_unfollow_user_follower_not_found(mocker, patch_uow_profiles, user
         await services.unfollow_user("target", "ghost")
 
 
-@pytest.mark.asyncio
 async def test_unfollow_user_cannot_unfollow_self(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="same", following=True)
@@ -153,7 +140,6 @@ async def test_unfollow_user_cannot_unfollow_self(mocker, patch_uow_profiles, us
         await services.unfollow_user("same", "same")
 
 
-@pytest.mark.asyncio
 async def test_unfollow_user_missing_id(mocker, patch_uow_profiles, user_factory):
     repo = MagicMock()
     user = user_factory.build(username="target", following=True)

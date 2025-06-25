@@ -2,11 +2,9 @@
 Tests for the feed articles endpoint.
 """
 
-import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
 async def test_feed_articles_authenticated_user(async_client: AsyncClient) -> None:
     """
     GIVEN: Two users where user1 follows user2, and user2 has created articles
@@ -72,7 +70,6 @@ async def test_feed_articles_authenticated_user(async_client: AsyncClient) -> No
     assert article["author"]["following"] is True
 
 
-@pytest.mark.asyncio
 async def test_feed_articles_empty_when_not_following_anyone(async_client: AsyncClient) -> None:
     """
     GIVEN: A user who doesn't follow anyone
@@ -102,7 +99,6 @@ async def test_feed_articles_empty_when_not_following_anyone(async_client: Async
     assert len(feed_data["articles"]) == 0
 
 
-@pytest.mark.asyncio
 async def test_feed_articles_requires_authentication(async_client: AsyncClient) -> None:
     """
     GIVEN: No authentication token
@@ -113,7 +109,6 @@ async def test_feed_articles_requires_authentication(async_client: AsyncClient) 
     assert response.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_feed_articles_pagination(async_client: AsyncClient) -> None:
     """
     GIVEN: A user following another user who has multiple articles

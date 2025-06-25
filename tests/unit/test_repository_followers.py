@@ -1,6 +1,5 @@
 import uuid
 
-import pytest
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,7 +8,6 @@ from app.domain.users.models import Follower, User
 from app.domain.users.orm import follower_table
 
 
-@pytest.mark.asyncio
 async def test_add_follower_creates_relationship(async_session: AsyncSession) -> None:
     """
     GIVEN two users in the database
@@ -55,7 +53,6 @@ async def test_add_follower_creates_relationship(async_session: AsyncSession) ->
     assert result.scalars().first() is not None
 
 
-@pytest.mark.asyncio
 async def test_add_follower_idempotent(async_session: AsyncSession) -> None:
     """
     GIVEN two users in the database
@@ -102,7 +99,6 @@ async def test_add_follower_idempotent(async_session: AsyncSession) -> None:
     assert len(result.scalars().all()) == 1
 
 
-@pytest.mark.asyncio
 async def test_remove_follower_removes_relationship(async_session: AsyncSession) -> None:
     """
     GIVEN two users with a follower relationship

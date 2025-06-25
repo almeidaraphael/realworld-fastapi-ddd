@@ -1,13 +1,11 @@
 import types
 from unittest.mock import MagicMock, patch
 
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.orm.session import get_session
 
 
-@pytest.mark.asyncio
 async def test_get_session_yields_asyncsession() -> None:
     """
     GIVEN a patched async engine and session

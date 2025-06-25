@@ -2,11 +2,9 @@
 Integration tests for comment endpoints.
 """
 
-import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
 async def test_create_comment_success(
     async_client: AsyncClient,
     user_factory,
@@ -63,7 +61,6 @@ async def test_create_comment_success(
     assert "updatedAt" in comment_data
 
 
-@pytest.mark.asyncio
 async def test_create_comment_unauthorized(async_client: AsyncClient):
     """
     GIVEN no authentication
@@ -80,7 +77,6 @@ async def test_create_comment_unauthorized(async_client: AsyncClient):
     assert resp.status_code == 401
 
 
-@pytest.mark.asyncio
 async def test_create_comment_article_not_found(
     async_client: AsyncClient,
     user_factory,
@@ -110,7 +106,6 @@ async def test_create_comment_article_not_found(
     assert resp.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_get_comments_success(
     async_client: AsyncClient,
     user_factory,
@@ -185,7 +180,6 @@ async def test_get_comments_success(
     assert comments[1]["author"]["username"] == user1.username
 
 
-@pytest.mark.asyncio
 async def test_get_comments_article_not_found(async_client: AsyncClient):
     """
     GIVEN a non-existent article
@@ -196,7 +190,6 @@ async def test_get_comments_article_not_found(async_client: AsyncClient):
     assert resp.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_delete_comment_success(
     async_client: AsyncClient,
     user_factory,
@@ -258,7 +251,6 @@ async def test_delete_comment_success(
     assert len(data["comments"]) == 0
 
 
-@pytest.mark.asyncio
 async def test_delete_comment_unauthorized(
     async_client: AsyncClient,
     user_factory,
@@ -319,7 +311,6 @@ async def test_delete_comment_unauthorized(
     assert delete_resp.status_code == 403
 
 
-@pytest.mark.asyncio
 async def test_delete_comment_not_found(
     async_client: AsyncClient,
     user_factory,

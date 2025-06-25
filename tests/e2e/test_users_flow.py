@@ -1,7 +1,6 @@
 import random
 import string
 
-import pytest
 from httpx import AsyncClient
 
 from tests.helpers import login_user, register_user
@@ -11,7 +10,6 @@ def random_suffix(length=8):
     return "".join(random.choices(string.ascii_lowercase + string.digits, k=length))
 
 
-@pytest.mark.asyncio
 async def test_register_user_success(async_client: AsyncClient, user_factory) -> None:
     """
     GIVEN valid user data
@@ -32,7 +30,6 @@ async def test_register_user_success(async_client: AsyncClient, user_factory) ->
     assert reg_data["token"]
 
 
-@pytest.mark.asyncio
 async def test_login_user_success(async_client: AsyncClient, user_factory) -> None:
     """
     GIVEN a registered user
@@ -54,7 +51,6 @@ async def test_login_user_success(async_client: AsyncClient, user_factory) -> No
     assert login_data["token"]
 
 
-@pytest.mark.asyncio
 async def test_get_current_user_success(async_client: AsyncClient, user_factory) -> None:
     """
     GIVEN a logged-in user
@@ -79,7 +75,6 @@ async def test_get_current_user_success(async_client: AsyncClient, user_factory)
     assert user_data["email"] == email
 
 
-@pytest.mark.asyncio
 async def test_update_user_success(async_client: AsyncClient, user_factory) -> None:
     """
     GIVEN a logged-in user

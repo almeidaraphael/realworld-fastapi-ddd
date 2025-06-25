@@ -12,7 +12,6 @@ import pytest
 from tests.db_utils import DatabaseTestUtils, benchmark_cleanup_methods
 
 
-@pytest.mark.asyncio
 async def test_database_cleanup_performance():
     """
     GIVEN a database with test data
@@ -53,7 +52,6 @@ async def test_database_cleanup_performance():
     assert cleanup_time < 0.05, f"Cleanup took {cleanup_time:.3f}s, expected < 0.05s"
 
 
-@pytest.mark.asyncio
 async def test_transaction_rollback_session():
     """
     GIVEN a transaction rollback session
@@ -86,7 +84,6 @@ async def test_transaction_rollback_session():
     assert final_counts["user"] == 0
 
 
-@pytest.mark.asyncio
 async def test_selective_table_cleanup():
     """
     GIVEN a database with data in multiple tables
@@ -131,7 +128,6 @@ async def test_selective_table_cleanup():
 
 
 @pytest.mark.integration
-@pytest.mark.asyncio
 async def test_benchmark_cleanup_methods():
     """
     GIVEN different cleanup methods
@@ -150,7 +146,6 @@ async def test_benchmark_cleanup_methods():
     print(f"  Selective DELETE: {results['selective_delete']:.3f}s")
 
 
-@pytest.mark.asyncio
 async def test_database_cleanup_benchmark():
     """
     GIVEN the improved cleanup methods
@@ -180,7 +175,6 @@ async def test_database_cleanup_benchmark():
     assert fastest < 0.05, f"Fastest cleanup method took {fastest:.3f}s, expected < 0.05s"
 
 
-@pytest.mark.asyncio
 async def test_db_session_fixture_isolation(db_session):
     """
     GIVEN a db_session fixture
@@ -206,7 +200,6 @@ async def test_db_session_fixture_isolation(db_session):
     # This test will automatically rollback when fixture goes out of scope
 
 
-@pytest.mark.asyncio
 async def test_empty_database_verification():
     """
     GIVEN the database cleanup system
@@ -257,7 +250,6 @@ async def test_empty_database_verification():
 class TestNewFixtureSystem:
     """Test class demonstrating the new fixture system organization."""
 
-    @pytest.mark.asyncio
     async def test_automatic_db_isolation_works(self, user_factory):
         """
         GIVEN the automatic db_isolation fixture
@@ -289,7 +281,6 @@ class TestNewFixtureSystem:
 
         # Cleanup will happen automatically via db_isolation fixture
 
-    @pytest.mark.asyncio
     async def test_second_test_also_gets_clean_db(self):
         """
         GIVEN the automatic db_isolation fixture

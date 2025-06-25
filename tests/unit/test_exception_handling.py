@@ -181,8 +181,7 @@ class TestExceptionTranslation:
         THEN returns 401.
         """
         error = AuthenticationError(
-            "Missing or invalid Authorization header",
-            error_code="MISSING_TOKEN"
+            "Missing or invalid Authorization header", error_code="MISSING_TOKEN"
         )
         http_exc = translate_domain_error_to_http(error)
 

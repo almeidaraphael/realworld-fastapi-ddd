@@ -29,7 +29,6 @@ def user_update() -> UserUpdateRequest:
     return UserUpdateRequest(user=UserUpdate(bio="bio"))
 
 
-@pytest.mark.asyncio
 async def test_create_user_success(
     mocker: Any,
     patch_repo_users: Any,
@@ -53,7 +52,6 @@ async def test_create_user_success(
     assert patch_repo_users[1].add.call_args[0][0].hashed_password == "hashed"
 
 
-@pytest.mark.asyncio
 async def test_create_user_duplicate(
     mocker: Any,
     patch_repo_users: Any,

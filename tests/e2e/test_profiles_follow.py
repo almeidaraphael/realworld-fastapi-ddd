@@ -1,10 +1,8 @@
-import pytest
 from httpx import AsyncClient
 
 from tests.helpers import login_user, register_user
 
 
-@pytest.mark.asyncio
 async def test_follow_profile_success(async_client: AsyncClient, user_read_factory) -> None:
     """
     GIVEN two registered users
@@ -36,7 +34,6 @@ async def test_follow_profile_success(async_client: AsyncClient, user_read_facto
     assert data["following"] is True
 
 
-@pytest.mark.asyncio
 async def test_follow_profile_cannot_follow_self(
     async_client: AsyncClient, user_read_factory
 ) -> None:
@@ -61,7 +58,6 @@ async def test_follow_profile_cannot_follow_self(
     assert "cannot follow yourself" in resp.text.lower()
 
 
-@pytest.mark.asyncio
 async def test_follow_profile_not_found(async_client: AsyncClient, user_read_factory) -> None:
     """
     GIVEN a registered user
@@ -84,7 +80,6 @@ async def test_follow_profile_not_found(async_client: AsyncClient, user_read_fac
     assert "not found" in resp.text.lower()
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_success(async_client: AsyncClient, user_read_factory) -> None:
     """
     GIVEN two registered users and one follows the other
@@ -120,7 +115,6 @@ async def test_unfollow_profile_success(async_client: AsyncClient, user_read_fac
     assert data["following"] is False
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_not_following(async_client: AsyncClient, user_read_factory) -> None:
     """
     GIVEN two registered users and one is not following the other
@@ -151,7 +145,6 @@ async def test_unfollow_profile_not_following(async_client: AsyncClient, user_re
     assert data["following"] is False
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_cannot_unfollow_self(
     async_client: AsyncClient, user_read_factory
 ) -> None:
@@ -176,7 +169,6 @@ async def test_unfollow_profile_cannot_unfollow_self(
     assert "cannot unfollow yourself" in resp.text.lower()
 
 
-@pytest.mark.asyncio
 async def test_unfollow_profile_not_found(async_client: AsyncClient, user_read_factory) -> None:
     """
     GIVEN a registered user

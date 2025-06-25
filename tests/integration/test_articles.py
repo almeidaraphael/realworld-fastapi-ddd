@@ -1,7 +1,5 @@
-import pytest
 
 
-@pytest.mark.asyncio
 async def test_create_article_success(
     async_client,
     user_factory,
@@ -45,7 +43,6 @@ async def test_create_article_success(
     assert data["article"]["author"]["username"] == username
 
 
-@pytest.mark.asyncio
 async def _setup_articles(
     async_client,
     register_user_fixture,
@@ -90,7 +87,6 @@ async def _setup_articles(
     return user1.username, user2.username
 
 
-@pytest.mark.asyncio
 async def test_list_articles_returns_all(
     async_client,
     register_user_fixture,
@@ -121,7 +117,6 @@ async def test_list_articles_returns_all(
     assert len(data["articles"]) == 2
 
 
-@pytest.mark.asyncio
 async def test_list_articles_filter_by_tag(
     async_client,
     register_user_fixture,
@@ -152,7 +147,6 @@ async def test_list_articles_filter_by_tag(
     assert data["articles"][0]["title"] == "A1"
 
 
-@pytest.mark.asyncio
 async def test_list_articles_filter_by_author(
     async_client,
     register_user_fixture,
@@ -181,7 +175,6 @@ async def test_list_articles_filter_by_author(
     assert data["articles"][0]["title"] == "A2"
 
 
-@pytest.mark.asyncio
 async def test_list_articles_pagination(
     async_client,
     register_user_fixture,
@@ -210,7 +203,6 @@ async def test_list_articles_pagination(
     assert len(data["articles"]) == 1
 
 
-@pytest.mark.asyncio
 async def test_list_articles_response_structure(
     async_client,
     register_user_fixture,
@@ -253,7 +245,6 @@ async def test_list_articles_response_structure(
         assert field in article["author"]
 
 
-@pytest.mark.asyncio
 async def test_get_article_by_slug_success(
     async_client,
     user_factory,
@@ -312,7 +303,6 @@ async def test_get_article_by_slug_success(
     assert "favoritesCount" in article_data
 
 
-@pytest.mark.asyncio
 async def test_get_article_by_slug_not_found(async_client):
     """
     GIVEN a non-existent article slug
@@ -325,7 +315,6 @@ async def test_get_article_by_slug_not_found(async_client):
     assert "Article with slug 'non-existent-slug' not found" in data["detail"]
 
 
-@pytest.mark.asyncio
 async def test_get_article_by_slug_with_authenticated_user(
     async_client,
     user_factory,
@@ -391,7 +380,6 @@ async def test_get_article_by_slug_with_authenticated_user(
     assert article_data["author"]["following"] is False
 
 
-@pytest.mark.asyncio
 async def test_update_article_success(
     async_client,
     user_factory,
@@ -459,7 +447,6 @@ async def test_update_article_success(
     assert "updated-title" in updated_article["slug"]
 
 
-@pytest.mark.asyncio
 async def test_update_article_not_found(
     async_client,
     user_factory,
@@ -491,7 +478,6 @@ async def test_update_article_not_found(
     assert "not found" in resp.json()["detail"].lower()
 
 
-@pytest.mark.asyncio
 async def test_update_article_unauthorized(
     async_client,
     user_factory,
@@ -540,7 +526,6 @@ async def test_update_article_unauthorized(
     assert "not authorized" in resp.json()["detail"].lower()
 
 
-@pytest.mark.asyncio
 async def test_update_article_partial_update(
     async_client,
     user_factory,
@@ -597,7 +582,6 @@ async def test_update_article_partial_update(
     assert updated_data["article"]["updatedAt"] != original_created_at
 
 
-@pytest.mark.asyncio
 async def test_update_article_title_changes_slug(
     async_client,
     user_factory,
@@ -658,7 +642,6 @@ async def test_update_article_title_changes_slug(
     assert old_get_resp.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_delete_article_success(
     async_client,
     user_factory,
@@ -714,7 +697,6 @@ async def test_delete_article_success(
     assert get_after_delete_resp.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_delete_article_not_found(
     async_client,
     user_factory,
@@ -744,7 +726,6 @@ async def test_delete_article_not_found(
     assert "Article with slug 'non-existent-slug' not found" in resp.json()["detail"]
 
 
-@pytest.mark.asyncio
 async def test_delete_article_unauthorized(
     async_client,
     user_factory,
@@ -794,7 +775,6 @@ async def test_delete_article_unauthorized(
     assert get_resp.status_code == 200
 
 
-@pytest.mark.asyncio
 async def test_delete_article_requires_authentication(
     async_client,
     user_factory,

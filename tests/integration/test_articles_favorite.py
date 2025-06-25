@@ -1,10 +1,8 @@
 """Test for article favorite/unfavorite functionality."""
 
-import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
 async def test_favorite_unfavorite_article_workflow(
     async_client: AsyncClient,
     user_factory,
@@ -61,7 +59,6 @@ async def test_favorite_unfavorite_article_workflow(
     assert unfavorited_article["favoritesCount"] == 0
 
 
-@pytest.mark.asyncio
 async def test_favorite_nonexistent_article(
     async_client: AsyncClient,
     user_factory,
@@ -89,7 +86,6 @@ async def test_favorite_nonexistent_article(
     assert response.status_code == 404
 
 
-@pytest.mark.asyncio
 async def test_favorite_without_authentication(async_client: AsyncClient) -> None:
     """
     GIVEN no authentication

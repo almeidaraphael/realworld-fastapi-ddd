@@ -337,7 +337,7 @@ async def update_article(
 
     Raises:
         ArticleNotFoundError: If the article doesn't exist
-        HTTPException: If user is not the author
+        ArticlePermissionError: If user is not the author
     """
     from slugify import slugify
 

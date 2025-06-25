@@ -1,12 +1,10 @@
 """End-to-end tests for tags functionality."""
 
-import pytest
 from httpx import AsyncClient
 
 from tests.helpers import register_user
 
 
-@pytest.mark.asyncio
 async def test_tags_e2e_flow(async_client: AsyncClient, user_factory) -> None:
     """
     GIVEN a complete tags workflow

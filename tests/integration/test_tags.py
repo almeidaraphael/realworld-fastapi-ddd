@@ -1,10 +1,8 @@
 """Integration tests for tags endpoints."""
 
-import pytest
 from httpx import AsyncClient
 
 
-@pytest.mark.asyncio
 async def test_get_tags_empty(async_client: AsyncClient) -> None:
     """
     GIVEN an empty database
@@ -18,7 +16,6 @@ async def test_get_tags_empty(async_client: AsyncClient) -> None:
     assert isinstance(data["tags"], list)
 
 
-@pytest.mark.asyncio
 async def test_get_tags_with_articles(async_client: AsyncClient, user_factory) -> None:
     """
     GIVEN articles with tags exist in the database

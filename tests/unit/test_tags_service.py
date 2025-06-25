@@ -2,12 +2,9 @@
 
 from unittest.mock import AsyncMock
 
-import pytest
-
 from app.service_layer.tags.services import get_tags
 
 
-@pytest.mark.asyncio
 async def test_get_tags_service(mocker) -> None:
     """
     GIVEN a mocked tags repository

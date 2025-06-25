@@ -1,10 +1,8 @@
-import pytest
 from httpx import AsyncClient
 
 from tests.helpers import register_user
 
 
-@pytest.mark.asyncio
 async def test_create_user_success(user_factory, async_client: AsyncClient) -> None:
     """
     GIVEN a new user registration request

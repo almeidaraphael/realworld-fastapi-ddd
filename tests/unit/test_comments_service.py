@@ -67,7 +67,6 @@ def sample_comment():
     )
 
 
-@pytest.mark.asyncio
 async def test_add_comment_to_article_success(
     comment_service, mock_uow, sample_comment_data, sample_article, sample_user, mocker
 ):
@@ -121,7 +120,6 @@ async def test_add_comment_to_article_success(
     comment_repo_mock.add.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_add_comment_article_not_found(
     comment_service, mock_uow, sample_comment_data, mocker
 ):
@@ -149,7 +147,6 @@ async def test_add_comment_article_not_found(
         )
 
 
-@pytest.mark.asyncio
 async def test_delete_comment_success(
     comment_service, mock_uow, sample_article, sample_comment, mocker
 ):
@@ -190,7 +187,6 @@ async def test_delete_comment_success(
     comment_repo_mock.delete.assert_called_once_with(sample_comment)
 
 
-@pytest.mark.asyncio
 async def test_delete_comment_permission_denied(
     comment_service, mock_uow, sample_article, sample_comment, mocker
 ):

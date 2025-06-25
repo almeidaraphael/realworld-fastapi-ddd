@@ -1,4 +1,3 @@
-import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.adapters.repository.users import UserRepository
@@ -6,7 +5,6 @@ from app.domain.users.models import User
 from tests.factories import UserReadFactory
 
 
-@pytest.mark.asyncio
 async def test_add_and_get_by_username_or_email(
     async_session: AsyncSession, user_factory: UserReadFactory
 ) -> None:

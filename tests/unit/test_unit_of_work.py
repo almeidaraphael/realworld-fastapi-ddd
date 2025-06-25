@@ -1,11 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
-
 from app.adapters.orm.unit_of_work import AsyncUnitOfWork
 
 
-@pytest.mark.asyncio
 async def test_async_unit_of_work_commit_and_close() -> None:
     """
     GIVEN a new AsyncUnitOfWork context
@@ -24,7 +21,6 @@ async def test_async_unit_of_work_commit_and_close() -> None:
             mock_session.close.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_async_unit_of_work_rollback_on_exception() -> None:
     """
     GIVEN a new AsyncUnitOfWork context
@@ -43,7 +39,6 @@ async def test_async_unit_of_work_rollback_on_exception() -> None:
             mock_session.close.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_async_unit_of_work_commit_method() -> None:
     """
     GIVEN an AsyncUnitOfWork instance
@@ -61,7 +56,6 @@ async def test_async_unit_of_work_commit_method() -> None:
             mock_session.commit.assert_awaited()
 
 
-@pytest.mark.asyncio
 async def test_async_unit_of_work_rollback_method() -> None:
     """
     GIVEN an AsyncUnitOfWork instance
