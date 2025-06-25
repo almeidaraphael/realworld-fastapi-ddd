@@ -1,5 +1,3 @@
-
-
 async def test_create_article_success(
     async_client,
     user_factory,

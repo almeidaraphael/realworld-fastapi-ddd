@@ -8,7 +8,11 @@ from sqlalchemy.orm import registry
 metadata = MetaData()
 mapper_registry = registry()
 
-# Example: If you want to map a Profile, define the table and mapping here.
+# Profile is a view on User data, so no separate table mapping is needed.
+# If Profile were to become a separate entity in the future, the mapping would look like:
+#
+# from app.domain.profiles.models import Profile
+#
 # profile_table = Table(
 #     "profile",
 #     metadata,
@@ -19,13 +23,6 @@ mapper_registry = registry()
 #     Column("user_id", Integer, ForeignKey("user.id"), nullable=False),
 # )
 #
-# class Profile:
-#     id: int
-#     username: str
-#     bio: str
-#     image: str
-#     user_id: int
-#
 # mapper_registry.map_imperatively(Profile, profile_table)
 
-# If Profile is just a view on User, you may not need a separate ORM mapping.
+# Since Profile is just a view on User, no separate ORM mapping is needed.
