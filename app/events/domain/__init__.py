@@ -26,6 +26,15 @@ from .users import (
     UserUnfollowed,
 )
 
+# Additional essential events
+from .additional_events import (
+    ArticleContentModerated,
+    ArticleViewIncremented,
+    UserAccountDeactivated,
+    UserLoginAttempted,
+    UserPasswordChanged,
+)
+
 __all__ = [
     # Article events
     "ArticleCreated",
@@ -47,4 +56,10 @@ __all__ = [
     "TagCreated",
     "TagRemoved",
     "TagUsed",
+    # Additional essential events
+    "ArticleContentModerated",
+    "ArticleViewIncremented", 
+    "UserAccountDeactivated",
+    "UserLoginAttempted",
+    "UserPasswordChanged",
 ]

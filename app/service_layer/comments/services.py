@@ -82,15 +82,6 @@ class CommentService(TransactionalService):
         # Save comment
         saved_comment = await comment_repo.add(comment)
 
-        # Publish domain event (sync)
-        shared_event_bus.publish(
-            ArticleCommentAdded(
-                article_id=article.id,
-                comment_id=saved_comment.id or 0,
-                author_id=current_user_id,
-            )
-        )
-
         # Publish async event for background processing
         await shared_event_bus.publish_async(
             ArticleCommentAdded(
@@ -187,7 +178,7 @@ class CommentService(TransactionalService):
 
         # Publish comment deletion event
         if comment.id is not None and article.id is not None:
-            shared_event_bus.publish(
+            await shared_event_bus.publish_async(
                 CommentDeleted(
                     comment_id=comment.id,
                     article_id=article.id,

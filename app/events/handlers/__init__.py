@@ -7,15 +7,24 @@ Provides convenient registration functions for all event handlers.
 
 from .cross_domain import register_cross_domain_handlers
 from .domain import register_article_handlers, register_comment_handlers, register_user_handlers
-from .system import register_analytics_handlers, register_security_handlers
+from .domain.tags import register_tag_handlers
+from .system import (
+    register_analytics_handlers,
+    register_maintenance_handlers,
+    register_moderation_handlers,
+    register_security_handlers,
+)
 
 __all__ = [
     # Domain handlers
     "register_article_handlers",
     "register_comment_handlers",
     "register_user_handlers",
+    "register_tag_handlers",
     # System handlers
     "register_analytics_handlers",
+    "register_maintenance_handlers",
+    "register_moderation_handlers",
     "register_security_handlers",
     # Cross-domain handlers
     "register_cross_domain_handlers",
@@ -39,9 +48,12 @@ def register_all_handlers() -> None:
     register_article_handlers()
     register_comment_handlers()
     register_user_handlers()
+    register_tag_handlers()
 
     # Register system handlers
     register_analytics_handlers()
+    register_maintenance_handlers()
+    register_moderation_handlers()
     register_security_handlers()
 
     # Register cross-domain handlers

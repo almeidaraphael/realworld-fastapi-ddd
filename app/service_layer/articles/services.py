@@ -19,6 +19,8 @@ from app.events import (
     ArticleFavorited,
     ArticleUnfavorited,
     ArticleUpdated,
+    TagCreated,
+    TagUsed,
     shared_event_bus,
 )
 from app.shared.transaction import transactional
